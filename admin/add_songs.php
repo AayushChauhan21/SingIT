@@ -1,7 +1,7 @@
 <?php
 include('demo.php');
 include('hhh.php');
-include('con.php');
+include('connection.php');
 
 
 $artistQuery = mysqli_query($con, "SELECT arid, name FROM artist ORDER BY name ASC");

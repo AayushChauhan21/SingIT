@@ -1,13 +1,13 @@
 <?php
 include('demo.php');
 include('hhh.php');
-include('con.php');
+include('connection.php');
 ?>
 <!-- <link rel="stylesheet" href="style_adm.css"> -->
 <style>
-.btn-md {
-    font-size: 20px;
-}
+    .btn-md {
+        font-size: 20px;
+    }
 </style>
 
 <div class="page-header">
@@ -48,21 +48,21 @@ include('con.php');
                             $qry = mysqli_query($con, "select * from user");
                             while ($row = mysqli_fetch_array($qry)) {
                                 ?>
-                            <tr class="text text-center">
-                                <!-- echo "<td><image src='./images/" . $row['image'] . "'class='rounded' height=50 width=50></td>"; -->
+                                <tr class="text text-center">
+                                    <!-- echo "<td><image src='./images/" . $row['image'] . "'class='rounded' height=50 width=50></td>"; -->
 
-                                <td>
-                                    <?php echo "<image src='" . $row['photo'] . "'class='rounded-circle' height=60 width=60>"; ?>
-                                </td>
-                                <td>
-                                    <?php echo "$row[name]"; ?>
-                                </td>
-                                <td>
-                                    <?php echo "$row[email]"; ?>
-                                </td>
+                                    <td>
+                                        <?php echo "<image src='" . $row['photo'] . "'class='rounded-circle' height=60 width=60>"; ?>
+                                    </td>
+                                    <td>
+                                        <?php echo "$row[name]"; ?>
+                                    </td>
+                                    <td>
+                                        <?php echo "$row[email]"; ?>
+                                    </td>
 
-                            </tr>
-                            <?php
+                                </tr>
+                                <?php
                             }
                             ?>
                         </tbody>

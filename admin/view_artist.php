@@ -1,7 +1,7 @@
 <?php
 include('demo.php');
 include('hhh.php');
-include('con.php');
+include('connection.php');
 
 $apiUrl = "http://localhost/flutter_crud/getArtists.php"; // API
 $response = file_get_contents($apiUrl);

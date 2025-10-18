@@ -1,7 +1,7 @@
 <?php
 include('demo.php');
 include('hhh.php');
-include('con.php');
+include('connection.php');
 error_reporting(1);
 
 // Single email deletion
@@ -136,34 +136,34 @@ if (isset($_POST["delete_selected"])) {
                                         // Format the date
                                         $formatted_date = date('d-m-Y H:i:s', strtotime($row['date']));
                                         ?>
-                                <tr class="">
-                                    <td class="inbox-small-cells text-center">
-                                        <label class="custom-control custom-checkbox mb-0">
-                                            <input type="checkbox" class="custom-control-input select_row"
-                                                name="mail_ids[]" value="<?php echo $row['mid']; ?>">
-                                            <span class="custom-control-label"></span>
-                                        </label>
-                                    </td>
-                                    <td class="view-message dont-show font-weight-semibold text-center">
-                                        <a
-                                            href="view_mail.php?mid=<?php echo $row['mid']; ?>"><?php echo $row['receiver']; ?></a>
-                                    </td>
-                                    <td class="view-message text-center"><b><?php echo $row['sub']; ?></b> -
-                                        <?php echo $row['msg']; ?>
-                                    </td>
-                                    <td class="view-message text-end font-weight-semibold text-center">
-                                        <?php echo $formatted_date; ?>
-                                    </td>
-                                    <td class="view-message text-end text-center">
-                                        <form method="post" action="">
-                                            <input type="hidden" name="mail_id" value="<?php echo $row['mid']; ?>">
-                                            <button type="submit" name="delete" class="btn btn-danger">
-                                                <b class="tx-20"><i class="uil uil-envelope-minus"></i></b>
-                                            </button>
-                                        </form>
-                                    </td>
-                                </tr>
-                                <?php
+                                        <tr class="">
+                                            <td class="inbox-small-cells text-center">
+                                                <label class="custom-control custom-checkbox mb-0">
+                                                    <input type="checkbox" class="custom-control-input select_row"
+                                                        name="mail_ids[]" value="<?php echo $row['mid']; ?>">
+                                                    <span class="custom-control-label"></span>
+                                                </label>
+                                            </td>
+                                            <td class="view-message dont-show font-weight-semibold text-center">
+                                                <a
+                                                    href="view_mail.php?mid=<?php echo $row['mid']; ?>"><?php echo $row['receiver']; ?></a>
+                                            </td>
+                                            <td class="view-message text-center"><b><?php echo $row['sub']; ?></b> -
+                                                <?php echo $row['msg']; ?>
+                                            </td>
+                                            <td class="view-message text-end font-weight-semibold text-center">
+                                                <?php echo $formatted_date; ?>
+                                            </td>
+                                            <td class="view-message text-end text-center">
+                                                <form method="post" action="">
+                                                    <input type="hidden" name="mail_id" value="<?php echo $row['mid']; ?>">
+                                                    <button type="submit" name="delete" class="btn btn-danger">
+                                                        <b class="tx-20"><i class="uil uil-envelope-minus"></i></b>
+                                                    </button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                        <?php
                                     }
                                 } else {
                                     echo "<tr><td colspan='7' class='text-center'>No mails to display</td></tr>";
@@ -188,10 +188,10 @@ include('fff.php');
 
 <!-- JavaScript for Select All functionality -->
 <script>
-document.getElementById('select_all').onclick = function() {
-    var checkboxes = document.querySelectorAll('.select_row');
-    for (var checkbox of checkboxes) {
-        checkbox.checked = this.checked;
+    document.getElementById('select_all').onclick = function () {
+        var checkboxes = document.querySelectorAll('.select_row');
+        for (var checkbox of checkboxes) {
+            checkbox.checked = this.checked;
+        }
     }
-}
 </script>

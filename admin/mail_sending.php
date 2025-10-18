@@ -1,5 +1,5 @@
 <?php
-include("con.php");
+include("connection.php");
 
 
 $mid = $_GET['mid'];

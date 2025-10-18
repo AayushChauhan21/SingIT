@@ -1,7 +1,7 @@
 <?php
 include('demo.php');
 include('hhh.php');
-include('con.php');
+include('connection.php');
 
 error_reporting(1);
 
@@ -21,9 +21,9 @@ if ($response !== FALSE) {
 
 <!-- <link rel="stylesheet" href="style_adm.css"> -->
 <style>
-.btn-md {
-    font-size: 20px;
-}
+    .btn-md {
+        font-size: 20px;
+    }
 </style>
 
 <div class="page-header">
@@ -62,29 +62,29 @@ if ($response !== FALSE) {
                         </thead>
                         <tbody>
                             <?php if (!empty($genres) && count($genres) > 0): ?>
-                            <?php foreach ($genres as $row): ?>
-                            <tr class="text text-center">
-                                <!-- echo "<td><image src='./images/" . $row['image'] . "'class='rounded' height=50 width=50></td>"; -->
+                                <?php foreach ($genres as $row): ?>
+                                    <tr class="text text-center">
+                                        <!-- echo "<td><image src='./images/" . $row['image'] . "'class='rounded' height=50 width=50></td>"; -->
 
-                                <td>
-                                    <img src='<?= htmlspecialchars($row['image']) ?>' class='rounded' height="50"
-                                        width="50" alt="Genre Image">
-                                </td>
-                                <td>
-                                    <?= htmlspecialchars($row['name']) ?>
-                                </td>
-                                <td>
-                                    <a href="edit_genres.php?gid=<?= htmlspecialchars($row['gid']) ?>"><i
-                                            class="uil uil-pen btn btn-md btn-success"></i></a>
-                                </td>
-                                <td>
-                                    <a href='delete.php?gid=<?= htmlspecialchars($row['gid']) ?>'
-                                        class="genre-delete-btn"> <i
-                                            class='uil uil-trash-alt btn btn-md btn-danger'></i>
-                                    </a>
-                                </td>
-                            </tr>
-                            <?php endforeach; ?>
+                                        <td>
+                                            <img src='<?= htmlspecialchars($row['image']) ?>' class='rounded' height="50"
+                                                width="50" alt="Genre Image">
+                                        </td>
+                                        <td>
+                                            <?= htmlspecialchars($row['name']) ?>
+                                        </td>
+                                        <td>
+                                            <a href="edit_genres.php?gid=<?= htmlspecialchars($row['gid']) ?>"><i
+                                                    class="uil uil-pen btn btn-md btn-success"></i></a>
+                                        </td>
+                                        <td>
+                                            <a href='delete.php?gid=<?= htmlspecialchars($row['gid']) ?>'
+                                                class="genre-delete-btn"> <i
+                                                    class='uil uil-trash-alt btn btn-md btn-danger'></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
 
                             <?php endif; ?>
                         </tbody>
@@ -133,48 +133,48 @@ include('fff.php');
 
 
 <script>
-// --- SweetAlert Trigger Functions ---
-// Success Trigger Function
-function showSuccessAlert(msg) {
-    swal({
-        title: 'Well done!',
-        text: msg,
-        type: 'success',
-        confirmButtonColor: '#57a94f'
-    });
-}
-
-// Error Trigger Function (Failure ke liye)
-function showErrorAlert(msg) {
-    swal({
-        title: 'Oops!',
-        text: msg,
-        type: 'error',
-        confirmButtonColor: '#ff0000'
-    });
-}
-
-$(document).ready(function() {
-
-    // --- Session Status Check Logic ---
-    <?php if (isset($_SESSION['status'])): ?>
-
-    var status = '<?php echo $_SESSION['status']; ?>';
-    var message = '<?php echo addslashes($_SESSION['message']); ?>';
-
-    // Status hisabe fun. call thase
-    if (status === 'success') {
-        // jQuery event trigger thai
-        showSuccessAlert(message);
-    } else {
-        showErrorAlert(message);
+    // --- SweetAlert Trigger Functions ---
+    // Success Trigger Function
+    function showSuccessAlert(msg) {
+        swal({
+            title: 'Well done!',
+            text: msg,
+            type: 'success',
+            confirmButtonColor: '#57a94f'
+        });
     }
 
-    // Message dekhaya pachi session ne hataidev
-    <?php unset($_SESSION['status']); ?>
-    <?php unset($_SESSION['message']); ?>
+    // Error Trigger Function (Failure ke liye)
+    function showErrorAlert(msg) {
+        swal({
+            title: 'Oops!',
+            text: msg,
+            type: 'error',
+            confirmButtonColor: '#ff0000'
+        });
+    }
 
-    <?php endif; ?>
+    $(document).ready(function () {
 
-});
+        // --- Session Status Check Logic ---
+        <?php if (isset($_SESSION['status'])): ?>
+
+            var status = '<?php echo $_SESSION['status']; ?>';
+            var message = '<?php echo addslashes($_SESSION['message']); ?>';
+
+            // Status hisabe fun. call thase
+            if (status === 'success') {
+                // jQuery event trigger thai
+                showSuccessAlert(message);
+            } else {
+                showErrorAlert(message);
+            }
+
+            // Message dekhaya pachi session ne hataidev
+            <?php unset($_SESSION['status']); ?>
+            <?php unset($_SESSION['message']); ?>
+
+        <?php endif; ?>
+
+    });
 </script>

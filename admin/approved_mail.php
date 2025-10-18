@@ -1,5 +1,5 @@
 <?php
-include('con.php');
+include('connection.php');
 
 $coid = $_GET['coid'];
 

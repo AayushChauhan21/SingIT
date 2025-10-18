@@ -1,9 +1,9 @@
 <?php
-include ('con.php');
+include('connection.php');
 
 $jid = $_GET['jid'];
 
-include ('smtp/PHPMailerAutoload.php');
+include('smtp/PHPMailerAutoload.php');
 // $q = mysqli_query($con, "select * from applicant where apid=$apid");
 // $r = mysqli_fetch_array($q);
 // $caid = $r['caid'];

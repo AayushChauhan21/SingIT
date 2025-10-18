@@ -1,5 +1,5 @@
 <?php
-include("con.php");
+include("connection.php");
 $jid = $_GET['jid'];
 $j_id = $_GET['jid'];
 $coid = $_GET['coid'];

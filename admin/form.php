@@ -1,5 +1,5 @@
 <?php
-include("con.php");
+include("connection.php");
 session_start();
 
 if (isset($_POST["login"])) {

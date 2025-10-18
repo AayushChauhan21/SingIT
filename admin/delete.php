@@ -1,5 +1,5 @@
 <?php
-include("con.php");
+include("connection.php");
 $gid = $_GET['gid'];
 if ($gid) {
     $qry = mysqli_query($con, "delete from genre where gid=$gid");

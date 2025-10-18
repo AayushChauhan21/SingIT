@@ -1,5 +1,5 @@
 <?php
-include ("con.php");
+include("connection.php");
 error_reporting(1);
 $stid = $_GET['stid'];
 $sid = $_GET['sid'];
