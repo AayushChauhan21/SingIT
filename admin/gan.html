@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            margin: 0;
+            height: 100vh;
+            /* Full viewport height */
+            display: flex;
+            justify-content: center;
+            /* Centers horizontally */
+            align-items: center;
+            /* Centers vertically */
+            background-color: #f0f0f0;
+            /* Light grey background for better visibility */
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+
+        .status-label {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #e6f4ea;
+            color: #34a853;
+            border-radius: 20px;
+            font-family: Arial, sans-serif;
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        .img {
+            margin-bottom: 10px;
+        }
+    </style>
+    <title>Centered Status</title>
+</head>
+
+<body>
+    <div class="container">
+        <div class="img">
+            <img src="../company/photo/<?php echo $photo; ?>" class="rounded-circle" height="100" width="100">
+            <b class="tx-28 mx-3">HR Name</b>
+        </div>
+        <?php
+            if ($status == 1) {
+                echo "<div class='status-label'>Approved</div>";
+            } elseif ($status == 2) {
+                echo "<b class='btn btn-md btn-danger'>Rejected</b>";
+            } else {
+                echo "<b class='btn btn-md btn-warning'>Pending</b>";
+            }
+        ?>
+    </div>
+</body>
+
+</html>
