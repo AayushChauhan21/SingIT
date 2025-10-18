@@ -3,7 +3,7 @@ include('demo.php');
 include('hhh.php');
 include('connection.php');
 
-$apiUrl = "http://localhost/flutter_crud/getLanguage.php"; // API
+$apiUrl = "http://localhost/SIngIT/flutter_crud/getLanguage.php"; // API
 $response = file_get_contents($apiUrl);
 $Language = json_decode($response, true);
 

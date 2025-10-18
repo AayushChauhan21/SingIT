@@ -278,8 +278,8 @@ while ($row = mysqli_fetch_assoc($languageQuery)) {
 </div> -->
 
 <div class="col-md-6 m-auto d-block">
-    <form action="http://localhost/flutter_crud/addSongs.php" method="post" enctype="multipart/form-data" id="form1"
-        class="mb-4 mt-5 font-weight-bold border bg-white p-5 shadow">
+    <form action="http://localhost/SIngIT/flutter_crud/addSongs.php" method="post" enctype="multipart/form-data"
+        id="form1" class="mb-4 mt-5 font-weight-bold border bg-white p-5 shadow">
 
         <h1 class="text-center text-light font-weight-bold p-3" id="gradient">
             <strong>Song Form</strong>

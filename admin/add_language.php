@@ -162,7 +162,7 @@ include('connection.php');
     </div>
     <div class="col-md-6 m-auto d-block">
         <!-- style="border:2px solid #E802A3" -->
-        <form action="http://localhost/flutter_crud/addLanguages.php" method="post" enctype="multipart/form-data"
+        <form action="http://localhost/SIngIT/flutter_crud/addLanguages.php" method="post" enctype="multipart/form-data"
             id="form1" class="mb-4 mt-5 border font-weight-bold bg-white p-5 shadow">
             <h1 class="text-center text-light font-weight-bold p-3" id="gradient">
                 <strong>Language Form</strong>

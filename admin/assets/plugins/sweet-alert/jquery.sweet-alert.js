@@ -76,7 +76,7 @@ $(function (e) {
 
 	// 				// 2. AJAX (API Call) se delete.php API ko call karo
 	// 				$.ajax({
-	// 					url: 'http://localhost/flutter_crud/deleteSong.php',
+	// 					url: 'http://localhost/SIngIT/flutter_crud/deleteSong.php',
 	// 					type: 'POST',
 	// 					data: { sid: sid },
 	// 					dataType: 'json',

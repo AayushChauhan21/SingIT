@@ -3,7 +3,7 @@ include('demo.php');
 include('hhh.php');
 include('connection.php');
 
-$apiUrl = "http://localhost/flutter_crud/getArtists.php"; // API
+$apiUrl = "http://localhost/SIngIT/flutter_crud/getArtists.php"; // API
 $response = file_get_contents($apiUrl);
 $artists = json_decode($response, true);
 

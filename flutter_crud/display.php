@@ -1,6 +1,6 @@
 <?php
 // Step 1: API URL
-$apiUrl = "http://localhost/flutter_crud/getSongs.php";
+$apiUrl = "http://localhost/SIngIT/flutter_crud/getSongs.php";
 
 // Step 2: Fetch API response
 $response = file_get_contents($apiUrl);

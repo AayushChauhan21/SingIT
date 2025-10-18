@@ -102,7 +102,7 @@
 
                         // AJAX Call to deleteSong.php
                         $.ajax({
-                            url: 'http://localhost/flutter_crud/deleteSong.php', // Song Delete API
+                            url: 'http://localhost/SIngIT/flutter_crud/deleteSong.php', // Song Delete API
                             type: 'POST',
                             data: {
                                 sid: sid_value
@@ -187,7 +187,7 @@
 
                         // AJAX Call to deleteArtist.php
                         $.ajax({
-                            url: 'http://localhost/flutter_crud/deleteArtist.php',
+                            url: 'http://localhost/SIngIT/flutter_crud/deleteArtist.php',
                             type: 'POST',
                             data: {
                                 arid: arid_value
@@ -264,7 +264,7 @@
                         });
 
                         $.ajax({
-                            url: 'http://localhost/flutter_crud/deleteGenre.php',
+                            url: 'http://localhost/SIngIT/flutter_crud/deleteGenre.php',
                             type: 'POST',
                             data: {
                                 gid: gid_value
@@ -339,7 +339,7 @@
 
                         // AJAX Call to deleteLanguage.php
                         $.ajax({
-                            url: 'http://localhost/flutter_crud/deleteLanguage.php', // નવો API URL
+                            url: 'http://localhost/SIngIT/flutter_crud/deleteLanguage.php', // નવો API URL
                             type: 'POST',
                             data: {
                                 lid: lid_value // Language ID ('lid') મોકલો

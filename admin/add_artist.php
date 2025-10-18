@@ -57,93 +57,93 @@ include('connection.php');
     <!-- BOOTSTRAP CSS -->
     <!-- <link id="style" href="assets/plugins/bootstrap/css/bootstrap.min.css" rel="stylesheet"> -->
     <style>
-        form {
-            background-color: white;
-            border-radius: 20px;
-        }
+    form {
+        background-color: white;
+        border-radius: 20px;
+    }
 
-        h1 {
-            border-radius: 10px;
-        }
+    h1 {
+        border-radius: 10px;
+    }
 
-        .input {
-            border-radius: 10px;
-            /* font-size:19px; */
-            height: 40px;
-            color: black;
+    .input {
+        border-radius: 10px;
+        /* font-size:19px; */
+        height: 40px;
+        color: black;
 
-        }
+    }
 
-        #name {
-            /* border-color: #edeef3; */
-            /* border-color: gray; */
-            /* background-color: white; */
-        }
+    #name {
+        /* border-color: #edeef3; */
+        /* border-color: gray; */
+        /* background-color: white; */
+    }
 
-        #custom-button {
-            padding: 10px;
-            color: white;
-            /* background-color: #8371fd; */
-            background: linear-gradient(135deg, #6259ca, #ff6ec4);
-            border: none;
-            border-radius: 10px;
-            cursor: pointer;
+    #custom-button {
+        padding: 10px;
+        color: white;
+        /* background-color: #8371fd; */
+        background: linear-gradient(135deg, #6259ca, #ff6ec4);
+        border: none;
+        border-radius: 10px;
+        cursor: pointer;
 
-        }
+    }
 
-        #custom-button:hover {
-            background-color: #9080f4;
-        }
+    #custom-button:hover {
+        background-color: #9080f4;
+    }
 
-        #custom-text {
-            margin-left: 10px;
-            font-family: sans-serif;
-            color: #aaa;
-        }
+    #custom-text {
+        margin-left: 10px;
+        font-family: sans-serif;
+        color: #aaa;
+    }
 
-        #custom-button {
-            padding: 10px;
-            color: white;
-            background-color: #8371fd;
-            border: none;
-            border-radius: 10px;
-            cursor: pointer;
+    #custom-button {
+        padding: 10px;
+        color: white;
+        background-color: #8371fd;
+        border: none;
+        border-radius: 10px;
+        cursor: pointer;
 
-        }
+    }
 
-        #custom-button:hover {
-            background-color: #9080f4;
-        }
+    #custom-button:hover {
+        background-color: #9080f4;
+    }
 
-        #custom-text {
-            margin-left: 10px;
-            font-family: sans-serif;
-            color: #aaa;
-        }
+    #custom-text {
+        margin-left: 10px;
+        font-family: sans-serif;
+        color: #aaa;
+    }
 
-        .btn-lg {
-            padding: 0rem 3rem;
-            font-size: 0.875rem;
-            border-radius: 10px;
-        }
+    .btn-lg {
+        padding: 0rem 3rem;
+        font-size: 0.875rem;
+        border-radius: 10px;
+    }
 
-        .setimg {
-            display: flex;
-            align-items: center;
-            justify-content: center
-        }
+    .setimg {
+        display: flex;
+        align-items: center;
+        justify-content: center
+    }
 
-        .tb {
-            /* font-size: 20px; */
-            padding-left: 10px;
-        }
+    .tb {
+        /* font-size: 20px; */
+        padding-left: 10px;
+    }
 
-        .error {
-            color: red;
-            font-size: 14px;
-            margin-top: 5px;
-            display: block;
-        }
+    .error {
+        color: red;
+        font-size: 14px;
+        margin-top: 5px;
+        display: block;
+    }
     </style>
 </head>
 
@@ -162,7 +162,7 @@ include('connection.php');
     </div>
     <div class="col-md-6 m-auto d-block">
         <!-- style="border:2px solid #E802A3" -->
-        <form action="http://localhost/flutter_crud/addArtists.php" method="post" enctype="multipart/form-data"
+        <form action="http://localhost/SIngIT/flutter_crud/addArtists.php" method="post" enctype="multipart/form-data"
             id="form1" class="mb-4 mt-5 border font-weight-bold bg-white p-5 shadow">
             <h1 class="text-center text-light font-weight-bold p-3" id="gradient">
                 <strong>Artist Form</strong>
@@ -193,83 +193,83 @@ include('connection.php');
     </div>
 
     <script>
-        const realFileBtn = document.getElementById("photo");
-        const customBtn = document.getElementById("custom-button");
-        const customTxt = document.getElementById("custom-text");
+    const realFileBtn = document.getElementById("photo");
+    const customBtn = document.getElementById("custom-button");
+    const customTxt = document.getElementById("custom-text");
 
-        customBtn.addEventListener("click", function () {
-            realFileBtn.click();
-        });
+    customBtn.addEventListener("click", function() {
+        realFileBtn.click();
+    });
 
-        realFileBtn.addEventListener("change", function () {
-            if (realFileBtn.value) {
-                customTxt.innerHTML = realFileBtn.value.match(/[\/\\]([\w\d\s\.\-\(\)]+)$/)[1];
-            } else {
-                customTxt.innerHTML = "No file chosen, yet.";
+    realFileBtn.addEventListener("change", function() {
+        if (realFileBtn.value) {
+            customTxt.innerHTML = realFileBtn.value.match(/[\/\\]([\w\d\s\.\-\(\)]+)$/)[1];
+        } else {
+            customTxt.innerHTML = "No file chosen, yet.";
+        }
+    });
+
+    document.getElementById("form1").addEventListener("submit", function(e) {
+        const nameField = document.getElementById("name");
+        const photoField = document.getElementById("photo");
+        const nameError = document.getElementById("nameError");
+        const photoError = document.getElementById("photoError");
+
+        let valid = true;
+
+        nameError.textContent = "";
+        photoError.textContent = "";
+        // nameField.style.borderColor = "#edeef3";
+        // photoField.style.borderColor = "#edeef3";
+
+        if (e.submitter && e.submitter.name === "insert") {
+            if (nameField.value.trim() === "") {
+                nameError.textContent = "⚠️ Name is required.";
+                // nameField.style.borderColor = "red";
+                valid = false;
             }
-        });
 
-        document.getElementById("form1").addEventListener("submit", function (e) {
-            const nameField = document.getElementById("name");
-            const photoField = document.getElementById("photo");
-            const nameError = document.getElementById("nameError");
-            const photoError = document.getElementById("photoError");
+            if (!photoField.value) {
+                photoError.textContent = "⚠️ Image is required.";
+                // photoField.style.borderColor = "red";
+                valid = false;
+            } else {
+                const allowedExtensions = ['jpg', 'jpeg', 'png', 'webp'];
+                const fileName = photoField.value.toLowerCase();
+                const fileExtension = fileName.split('.').pop();
 
-            let valid = true;
-
-            nameError.textContent = "";
-            photoError.textContent = "";
-            // nameField.style.borderColor = "#edeef3";
-            // photoField.style.borderColor = "#edeef3";
-
-            if (e.submitter && e.submitter.name === "insert") {
-                if (nameField.value.trim() === "") {
-                    nameError.textContent = "⚠️ Name is required.";
-                    // nameField.style.borderColor = "red";
-                    valid = false;
-                }
-
-                if (!photoField.value) {
-                    photoError.textContent = "⚠️ Image is required.";
+                if (!allowedExtensions.includes(fileExtension)) {
+                    photoError.textContent = "⚠️ Only JPG, JPEG, PNG, or WEBP formats are allowed.";
                     // photoField.style.borderColor = "red";
                     valid = false;
-                } else {
-                    const allowedExtensions = ['jpg', 'jpeg', 'png', 'webp'];
-                    const fileName = photoField.value.toLowerCase();
-                    const fileExtension = fileName.split('.').pop();
-
-                    if (!allowedExtensions.includes(fileExtension)) {
-                        photoError.textContent = "⚠️ Only JPG, JPEG, PNG, or WEBP formats are allowed.";
-                        // photoField.style.borderColor = "red";
-                        valid = false;
-                    }
-                }
-
-                if (!valid) {
-                    e.preventDefault();
                 }
             }
-        });
+
+            if (!valid) {
+                e.preventDefault();
+            }
+        }
+    });
     </script>
 
     <script>
-        const realFileBtn = document.getElementById("photo");
-        const customBtn = document.getElementById("custom-button");
-        const customTxt = document.getElementById("custom-text");
+    const realFileBtn = document.getElementById("photo");
+    const customBtn = document.getElementById("custom-button");
+    const customTxt = document.getElementById("custom-text");
 
-        customBtn.addEventListener("click", function () {
-            realFileBtn.click();
-        });
+    customBtn.addEventListener("click", function() {
+        realFileBtn.click();
+    });
 
-        realFileBtn.addEventListener("change", function () {
-            if (realFileBtn.value) {
-                customTxt.innerHTML = realFileBtn.value.match(
-                    /[\/\\]([\w\d\s\.\-\(\)]+)$/
-                )[1];
-            } else {
-                customTxt.innerHTML = "No file chosen, yet.";
-            }
-        });
+    realFileBtn.addEventListener("change", function() {
+        if (realFileBtn.value) {
+            customTxt.innerHTML = realFileBtn.value.match(
+                /[\/\\]([\w\d\s\.\-\(\)]+)$/
+            )[1];
+        } else {
+            customTxt.innerHTML = "No file chosen, yet.";
+        }
+    });
     </script>
 </body>
 

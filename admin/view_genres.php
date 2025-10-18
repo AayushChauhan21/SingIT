@@ -5,7 +5,7 @@ include('connection.php');
 
 error_reporting(1);
 
-$apiUrl = "http://localhost/flutter_crud/getGenres.php";
+$apiUrl = "http://localhost/SIngIT/flutter_crud/getGenres.php";
 $genres = [];
 
 $response = @file_get_contents($apiUrl);

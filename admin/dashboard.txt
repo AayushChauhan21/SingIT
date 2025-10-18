@@ -617,7 +617,7 @@ include('connection.php');
 
                         <tbody>
                             <?php
-                            $apiUrl = "http://localhost/flutter_crud/get5Genres.php";
+                            $apiUrl = "http://localhost/SIngIT/flutter_crud/get5Genres.php";
                             $response = file_get_contents($apiUrl);
                             $genres = json_decode($response, true);
                             foreach ($genres as $row) {
@@ -690,7 +690,7 @@ include('connection.php');
                         </thead>
                         <tbody>
                             <?php
-                            $apiUrl = "http://localhost/flutter_crud/get5Artists.php";
+                            $apiUrl = "http://localhost/SIngIT/flutter_crud/get5Artists.php";
                             $response = file_get_contents($apiUrl);
                             $song = json_decode($response, true);
                             ?>
@@ -766,7 +766,7 @@ include('connection.php');
                         </thead>
                         <tbody>
                             <?php
-                            $apiUrl = "http://localhost/flutter_crud/get5Songs.php";
+                            $apiUrl = "http://localhost/SIngIT/flutter_crud/get5Songs.php";
                             $response = file_get_contents($apiUrl);
                             $songs = json_decode($response, true);
 

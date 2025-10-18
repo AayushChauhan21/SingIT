@@ -5,7 +5,7 @@ include('connection.php');
 
 $arid = $_GET['arid'];
 
-$apiUrl = "http://localhost/flutter_crud/getArtistDetails.php?arid=$arid"; // Replace with dynamic arid
+$apiUrl = "http://localhost/SIngIT/flutter_crud/getArtistDetails.php?arid=$arid"; // Replace with dynamic arid
 $response = file_get_contents($apiUrl);
 $artist = json_decode($response, true);
 

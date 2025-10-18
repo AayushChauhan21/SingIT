@@ -2,7 +2,7 @@
 include('connection.php');
 
 
-$apiUrl = "http://localhost/flutter_crud/dashboard.php"; // API
+$apiUrl = "http://localhost/SIngIT/flutter_crud/dashboard.php"; // API
 $response = file_get_contents($apiUrl);
 $data = json_decode($response, true);
 

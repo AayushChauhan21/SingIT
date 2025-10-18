@@ -6,7 +6,7 @@ include('connection.php');
 
 error_reporting(1);
 
-$apiUrl = "http://localhost/flutter_crud/getSongs.php";
+$apiUrl = "http://localhost/SIngIT/flutter_crud/getSongs.php";
 $songs = [];
 
 $response = @file_get_contents($apiUrl);
