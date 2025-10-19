@@ -19,6 +19,7 @@ if (isset($_POST["login"])) {
     }
 
     if ($tmp != 2) {
+        // SECURITY NOTE: Please secure this query with prepared statements!
         $qry = mysqli_query($con, "SELECT * FROM admin WHERE email='$email'");
         if ($qry && mysqli_num_rows($qry) > 0) {
             $row = mysqli_fetch_assoc($qry);
@@ -41,10 +42,12 @@ if (isset($_POST["login"])) {
 <head>
     <meta charset="UTF-8">
     <link href="https://fonts.googleapis.com/css?family=Roboto:400,500,700,900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" type="text/css" href="style.css">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title> SingIT - Admin </title>
     <link rel="shortcut icon" type="image/x-icon" href="favicon.png" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+        integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
 
     <style>
         * {
@@ -59,7 +62,6 @@ if (isset($_POST["login"])) {
         }
 
         body {
-            /* background: #e2e0fe; */
             background: #7159BD;
             font-family: Roboto, Arial, sans-serif;
         }
@@ -120,6 +122,7 @@ if (isset($_POST["login"])) {
 
         form .input-block {
             margin-bottom: 15px;
+            position: relative;
         }
 
         .input-block input {
@@ -138,6 +141,7 @@ if (isset($_POST["login"])) {
             border: 1px solid #dddddd;
             outline: #685efd;
             transition: 250ms;
+            padding-right: 50px;
         }
 
         form .input-block input:hover {
@@ -146,6 +150,22 @@ if (isset($_POST["login"])) {
 
         ::placeholder {
             color: #c8c6c6;
+        }
+
+        .toggle-password {
+            position: absolute;
+            top: 50%;
+            right: 15px;
+            transform: translateY(-50%);
+            cursor: pointer;
+            color: #c8c6c6;
+            font-size: 16px;
+            /* Reduced font size */
+            z-index: 10;
+        }
+
+        .toggle-password:hover {
+            color: #685efd;
         }
 
         form .btn-login {
@@ -319,6 +339,7 @@ if (isset($_POST["login"])) {
                 </div>
                 <div class="input-block">
                     <input type="password" id="password" name="password" placeholder="Password" />
+                    <span class="toggle-password fa-solid fa-eye-slash" id="togglePassword"></span>
                 </div>
                 <button type="submit" name="login" id="login" class="btn-login">Sign In</button>
             </form>
@@ -332,14 +353,30 @@ if (isset($_POST["login"])) {
         const btnLogin = document.querySelector('.btn-login');
         const form = document.querySelector("form");
 
+        // Password visibility toggle logic
+        const passwordInput = document.getElementById('password');
+        const togglePassword = document.getElementById('togglePassword');
 
+        if (togglePassword) {
+            togglePassword.addEventListener('click', function (e) {
+                // toggle the type attribute
+                const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                passwordInput.setAttribute('type', type);
+                // toggle the eye icon
+                this.classList.toggle('fa-eye');
+                this.classList.toggle('fa-eye-slash');
+            });
+        }
+
+
+        // Existing animation listeners
         form.addEventListener("animationstart", event => {
             if (event.animationName === "down") {
                 document.querySelector("body").style.overflow = "hidden"
             }
         })
 
-        form.addEventListener("animationend", () => {
+        form.addEventListener("animationend", (event) => {
             if (event.animationName === "down")
                 form.style.display = "none";
             document.querySelector("body").style.overflow = "none"
@@ -368,9 +405,8 @@ if (isset($_POST["login"])) {
             li.style.animationDelay = `${delay}s`
             li.style.animationDuration = `${duration}s`
 
-            opacity: 0;
             li.style.animationTimingFunction =
-                `cubic-bezier(${Math.random()}, ${Math.random()}, ${Math.random()}, ${Math.random()}, ${Math.random()}, )`
+                `cubic-bezier(${Math.random()}, ${Math.random()}, ${Math.random()}, ${Math.random()})`
 
             ulSquares.appendChild(li);
 
