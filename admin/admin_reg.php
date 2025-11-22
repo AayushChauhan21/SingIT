@@ -13,7 +13,7 @@ $cloudinary = new Cloudinary([
 ]);
 
 // Database connection
-$conn = new mysqli("localhost", "root", "", "signit");
+$conn = new mysqli("localhost", "root", "", "singit");
 
 $message = "";
 $imageUrl = "";

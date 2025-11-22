@@ -57,13 +57,13 @@ if ($response !== FALSE) {
                         class="table table-bordered border-t0 key-buttons text-nowrap w-100 song_table">
                         <thead>
                             <tr class="text text-center">
-                                <th>Image</th>
+                                <th></th>
                                 <th><b>Name</b></th>
                                 <th><b>Length</b></th>
                                 <th><b>Album</b></th>
-                                <th>Details</th>
-                                <th>Edit</th>
-                                <th>Delete</th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
                             </tr>
                         </thead>
                         <tbody>

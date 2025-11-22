@@ -1772,16 +1772,19 @@ fieldset:disabled a.btn {
     pointer-events: none;
 }
 
+
 .btn-secondary {
     color: #ffffff;
-    background-color: #f1388b;
-    border-color: #f1388b;
+    background: linear-gradient(to bottom, #f1388b, #f77cae);
+    border: #f1388b;
+    transition: all 0.3s ease-in-out;
+    transform: translateY(0);
 }
 
 .btn-secondary:hover {
     color: #ffffff;
-    background-color: #ec3487;
-    border-color: #ec3487;
+    box-shadow: 0 0 15px 1px #f1388b;
+    transform: translateY(-1.5px);
 }
 
 .btn-secondary:focus,
@@ -27112,7 +27115,11 @@ body.rtl {
 
 @media (min-width: 1173px) {
     .main-header-center .form-control {
-        width: 257px;
+        /* width: 257px; */
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
     }
 }
 
@@ -76356,3 +76363,16 @@ div.dt-button-info h2 {
 }
 
 /*# sourceMappingURL=style.css.map */
+
+
+.modal-content audio {
+    background-color: var(--dark-body);
+    /* Contrast for audio player */
+    border-radius: 50px;
+    padding: 5px;
+}
+
+#pop-up {
+    border-radius: 15px;
+    /* background-color: var(--dark-theme) !important; */
+}

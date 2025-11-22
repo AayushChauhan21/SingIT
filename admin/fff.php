@@ -241,3 +241,199 @@
 include('assets/js_sweet_alert/sweet_alert.php');
 
 ?>
+
+<script>
+    // --- Live Search with Debounce Logic ---
+
+    const API_ENDPOINT = 'http://localhost/SIngIT/flutter_crud/search.php';
+    const searchInput = document.getElementById('header-search-input');
+    const resultsWrapper = document.getElementById('search-results-wrapper');
+    const resultsContainer = document.getElementById('header-results-container');
+    const statusMessage = document.getElementById('header-status-message');
+    let debounceTimer;
+
+    /**
+     * Debounce function to delay execution until the user stops typing for 5 seconds (5000ms).
+     */
+    const debounce = (func, delay) => {
+        return function (...args) {
+            clearTimeout(debounceTimer);
+            // Show dropdown and initial status message immediately upon typing
+            resultsWrapper.classList.add('show');
+            statusMessage.innerHTML = '<i class="uil uil-search"></i> Searching...';
+            debounceTimer = setTimeout(() => {
+                func.apply(this, args);
+            }, delay);
+        };
+    };
+
+    /**
+     * Renders the search results (songs and artists) in small card/list format.
+     */
+    const renderResults = (data) => {
+        resultsContainer.innerHTML = '';
+
+        const songCount = data.songs ? data.songs.length : 0;
+        const artistCount = data.artists ? data.artists.length : 0;
+        const totalCount = songCount + artistCount;
+
+        if (totalCount === 0) {
+            resultsContainer.innerHTML = `
+            <div class="p-3 text-center text-muted">
+            <i class="uil uil-exclamation-circle"></i> No results found for "${searchInput.value.trim()}".
+            </div>
+            `;
+            statusMessage.innerHTML = '<i class="uil uil-times-circle"></i> No results.';
+            return;
+        }
+
+        // Render Songs
+        if (songCount > 0) {
+            resultsContainer.innerHTML +=
+                '<h6 class=" p-2 mb-0"><i class="uil uil-music"></i> Songs (' +
+                songCount +
+                ')</h6>';
+            data.songs.slice(0, 5).forEach(song => { // Limit to top 5 songs
+                resultsContainer.innerHTML += `
+                <a href="view_song_details.php?sid=${song.sid}" class="search-result-item">
+                <img src="${song.image || 'favicon_1.png'}" 
+                class="rounded" style="height: 50px; width: 50px; object-fit: cover;" onerror="this.onerror=null;this.src='favicon_1.png';"/>
+                <div>
+                <p class="mb-0 font-weight-semibold">${song.name}</p>
+                <small class="text-muted"> Artist: ${song.singer_name}</small>
+                </div>
+                </a>
+                `;
+            });
+        }
+
+        // Render Artists
+        if (artistCount > 0) {
+            resultsContainer.innerHTML +=
+                '<h6 class=" p-2 mt-2 mb-0 border-top"><i class="uil uil-user-square"></i> Artists (' +
+                artistCount + ')</h6>';
+            data.artists.slice(0, 5).forEach(artist => { // Limit to top 5 artists
+                resultsContainer.innerHTML += `
+                    <a href="view_artist_details.php?arid=${artist.arid}" class="search-result-item">
+                    <img src="${artist.photo || 'favicon_1.png'}" 
+                    style="height: 60px; width: 45px; object-fit: cover;" onerror="this.onerror=null;this.src='favicon_1.png';"/>
+                    <div>
+                    <p class="mb-0 font-weight-semibold">${artist.name}</p>
+                    <small class="text-muted">${artist.song_count} songs</small>
+                    </div>
+                    </a>
+                    `;
+            });
+        }
+
+        statusMessage.innerHTML =
+            `<i class="uil uil-check-circle"></i> Showing ${totalCount} results.`;
+
+    };
+
+
+    /**
+     * Handles the actual search execution via AJAX. (Using jQuery $.ajax)
+     */
+    const executeSearch = (query) => {
+        query = query.trim();
+
+        if (query.length === 0) {
+            statusMessage.innerHTML = 'Start typing to search...';
+            resultsWrapper.classList.remove('show');
+            resultsContainer.innerHTML = '';
+            return;
+        }
+
+        statusMessage.innerHTML = '<i class="fe fe-loader me-1 fa-spin"></i> Searching...';
+        resultsContainer.innerHTML = '';
+        resultsWrapper.classList.add('show');
+
+
+        $.ajax({
+            url: API_ENDPOINT,
+            type: 'GET',
+            data: {
+                query: query
+            },
+            dataType: 'json',
+            success: function (data) {
+                if (data) {
+                    renderResults(data);
+                } else {
+                    renderResults({
+                        songs: [],
+                        artists: []
+                    });
+                }
+            },
+            error: function (xhr, status, error) {
+                console.error("Search API Error:", status, error);
+                statusMessage.innerHTML =
+                    '<i class="fe fe-alert-triangle me-1"></i> Search Failed!';
+                resultsContainer.innerHTML = `
+                    <div class="p-3 text-center text-danger">
+                    Error connecting to ${API_ENDPOINT}.
+                    </div>
+                    `;
+            }
+        });
+    };
+
+
+    $(document).ready(function () {
+        // Create the debounced search function (2000ms = 2 seconds)
+        const debouncedSearch = debounce(executeSearch, 2000);
+
+        // Event listener for the input field
+        $('#header-search-input').on('input', function (e) {
+            const query = e.target.value.trim();
+            if (query.length > 0) {
+                debouncedSearch(query);
+            } else {
+                clearTimeout(debounceTimer);
+                executeSearch(''); // Clear results and status immediately
+            }
+        });
+
+        // Hide results when clicking outside
+        $(document).on('click', function (e) {
+            // Check if the click is outside the entire search area
+            if (!$(e.target).closest('.main-header-center').length) {
+                resultsWrapper.classList.remove('show');
+            }
+        });
+
+        // Keep dropdown open when clicking inside it
+        $(resultsWrapper).on('click', function (e) {
+            e.stopPropagation();
+        });
+    });
+
+
+    // Function to handle the keyboard shortcut
+    const handleKeydown = (event) => {
+        // Check if Ctrl key (Windows/Linux) or Cmd key (Mac) is pressed
+        const isCtrlCmd = event.ctrlKey || event.metaKey;
+
+        // Check if the key pressed is 'q' (case-insensitive)
+        // event.key is generally better than event.keyCode for letter keys
+        if (isCtrlCmd && event.key.toLowerCase() === 'q') {
+
+            // Prevent the default browser action (which might close the tab or window)
+            event.preventDefault();
+
+            // Find the search input element and set focus
+            const searchInput = document.getElementById('header-search-input');
+            if (searchInput) {
+                searchInput.focus();
+
+                // Optional: Select the text inside the search bar if there is any
+                searchInput.select();
+            }
+        }
+    };
+
+    // Add the global keyboard listener once the document is loaded
+    document.addEventListener('keydown', handleKeydown);
+</script>

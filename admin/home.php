@@ -19,6 +19,76 @@ include('connection.php');
         font-size: 1.1rem;
         /* border-radius: 10px; */
     }
+
+
+    /* Ensure the image covers the container and has smooth edges */
+    .carousel-item img {
+        /* height: 250px; */
+        object-fit: cover;
+        border-radius: 0.75rem;
+        /* rounded-xl */
+    }
+
+    /* Customizing the image size inside the carousel for consistency */
+    .carousel-inner .carousel-item img {
+        /* Set a fixed height for all carousel slides */
+        height: 302px;
+        /* તમે આ વેલ્યુ બદલી શકો છો (e.g., 300px) */
+        /* Ensure the image covers the entire container, cropping the edges if necessary, but maintaining aspect ratio. */
+        object-fit: cover;
+        /* Optional: Ensure image is block level and takes full container width */
+        display: block;
+        width: 100%;
+    }
+
+    /* Gradient Caption for better readability */
+    .carousel-caption {
+        background: linear-gradient(to top, rgba(0, 0, 0, 0.85), rgba(0, 0, 0, 0.1));
+        bottom: 0;
+        left: 0;
+        right: 0;
+        padding: 1rem 1.5rem;
+        text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.8);
+        /* Match the inner border radius */
+        border-bottom-left-radius: 0.75rem;
+        border-bottom-right-radius: 0.75rem;
+    }
+
+    /* Customizing the Bootstrap indicator color for contrast */
+    .carousel-indicators [data-bs-target] {
+        background-color: white;
+        opacity: 0.7;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        border: none;
+        margin: 0 4px;
+    }
+
+    .carousel-indicators .active {
+        background-color: #3b82f6;
+        /* Tailwind blue-500 */
+        opacity: 1;
+    }
+
+    /* --- ARROW CENTERING FIX --- */
+    .carousel-control-prev,
+    .carousel-control-next {
+        /* Force the control button to occupy the full height of the carousel */
+        height: 100%;
+        display: flex;
+        /* Use flexbox to center content */
+        align-items: center;
+        /* Vertically center the content */
+        opacity: 0.8;
+        /* Make them slightly more visible */
+        transition: opacity 0.2s;
+    }
+
+    .carousel-control-prev:hover,
+    .carousel-control-next:hover {
+        opacity: 1;
+    }
 </style>
 
 
@@ -118,16 +188,16 @@ include('connection.php');
                         <div class="card-item">
                             <h4 class="card-item-icon card-icon">
 
-                                <i class="uil uil-user-square text-primary"></i>
+                                <i class="uil uil-language text-primary"></i>
                             </h4>
                             <div class="card-item-title mb-2">
                                 <label class="main-content-label tx-13 font-weight-bold mb-1">Total
-                                    Artist</label>
+                                    Language</label>
                             </div>
                             <div class="card-item-body">
                                 <div class="card-item-stat">
                                     <h4 class="font-weight-bold">
-                                        <?= $counts['artists'] ?>
+                                        <?= $counts['languages'] ?>
                                     </h4>
                                 </div>
                             </div>
@@ -141,16 +211,16 @@ include('connection.php');
                         <div class="card-item">
                             <h4 class="card-item-icon card-icon">
 
-                                <i class="uil uil-music text-primary"></i>
+                                <i class="uil uil-image text-primary"></i>
                             </h4>
                             <div class="card-item-title  mb-2">
                                 <label class="main-content-label tx-13 font-weight-bold mb-1">Total
-                                    Songs</label>
+                                    Slider</label>
                             </div>
                             <div class="card-item-body">
                                 <div class="card-item-stat">
                                     <h4 class="font-weight-bold">
-                                        <?= $counts['songs'] ?>
+                                        <?= $counts['sliders'] ?>
                                     </h4>
                                 </div>
                             </div>
@@ -352,6 +422,48 @@ include('connection.php');
     </div><!-- col end -->
 
     <div class="col-sm-12 col-lg-12 col-xl-3">
+
+        <div class="card custom-card" style="margin-top: 21.5px;">
+            <div class="card-body">
+                <div class="card-item">
+                    <h4 class="card-item-icon card-icon">
+
+                        <i class="uil uil-user-square text-primary"></i>
+                    </h4>
+                    <div class="card-item-title mb-2">
+                        <label class="main-content-label tx-13 font-weight-bold mb-1">Total
+                            Artist</label>
+                    </div>
+                    <div class="card-item-body">
+                        <div class="card-item-stat">
+                            <h4 class="font-weight-bold"><?= $counts['artists'] ?></h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card custom-card">
+            <div class="card-body">
+                <div class="card-item">
+                    <h4 class="card-item-icon card-icon">
+
+                        <i class="uil uil-music text-primary"></i>
+                    </h4>
+                    <div class="card-item-title mb-2">
+                        <label class="main-content-label tx-13 font-weight-bold mb-1">Total
+                            Songs</label>
+                    </div>
+                    <div class="card-item-body">
+                        <div class="card-item-stat">
+                            <h4 class="font-weight-bold"><?= $counts['songs'] ?></h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
 
         <!-- <div class="card custom-card card-dashboard-calendar pb-0">
 
@@ -565,6 +677,181 @@ include('connection.php');
 
     </div><!-- col end -->
 
+    <!-- slider -->
+    <!-- <div class="col-lg-6 col-xl-4 col-md-6">
+        <div class="card custom-card">
+            <div class="card-body h-100">
+                <div>
+                    <h6 class="main-content-label mb-1">With Caption</h6>
+                    <p class="text-muted card-sub-title">Add captions to your slides easily with the
+                        <code>.carousel-caption</code> element within any <code>.carousel-item.</code>
+                    </p>
+                </div>
+                <div>
+                    <div class="carousel slide" data-bs-ride="carousel" id="carouselExample4">
+                        <ol class="carousel-indicators">
+                            <li class="" data-bs-slide-to="0" data-bs-target="#carouselExample4"></li>
+                            <li data-bs-slide-to="1" data-bs-target="#carouselExample4" class="active"
+                                aria-current="true"></li>
+                            <li data-bs-slide-to="2" data-bs-target="#carouselExample4" class=""></li>
+                        </ol>
+                        <div class="carousel-inner bg-dark">
+                            <div class="carousel-item">
+                                <img alt="img" class="d-block w-100 op-3" src="../assets/img/media/17.jpg">
+                                <div class="carousel-caption d-none d-md-block">
+                                    <h5>First Slide</h5>
+                                    <p class="tx-14">Praesent commodo cursus magna, vel scelerisque nisl consectetur.
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="carousel-item active">
+                                <img alt="img" class="d-block w-100 op-3" src="../assets/img/media/18.jpg">
+                                <div class="carousel-caption d-none d-md-block">
+                                    <h5>Second Slide</h5>
+                                    <p class="tx-14">Praesent commodo cursus magna, vel scelerisque nisl consectetur.
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="carousel-item">
+                                <img alt="img" class="d-block w-100 op-3" src="../assets/img/media/19.jpg">
+                                <div class="carousel-caption d-none d-md-block">
+                                    <h5>Third Slide</h5>
+                                    <p class="tx-14">Praesent commodo cursus magna, vel scelerisque nisl consectetur.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div> -->
+    <!-- slider -->
+
+    <div class="col-lg-6 col-md-12">
+        <div class="card custom-card">
+            <div class="card-body h-100">
+                <div class="border-bottom-0 pt-0 pe-0 d-flex">
+                    <div>
+                        <label class="main-content-label mb-2">Today's Special</label>
+                        <span class="d-block tx-12 mb-3 text-muted">Today's Special Song</span>
+                    </div>
+                    <div class="ms-auto">
+                        <a href="javascript:void(0)" class="option-dots" data-bs-toggle="dropdown" aria-haspopup="true"
+                            aria-expanded="false"><i class="fe fe-more-vertical"></i></a>
+                        <div class="dropdown-menu">
+                            <a class="dropdown-item" href="view_special.php">
+                                <b><i class="uil uil-window"></i> View All</b></a>
+                        </div>
+                    </div>
+                </div>
+
+                <ul id="special-gallery" class="list-unstyled row mb-0">
+                    <?php if (!empty($recent_special)): ?>
+                        <?php
+                        // Use a column class that allows images to sit next to each other, e.g., col-4 for 3 images per row
+                        $display_count = min(count($recent_special), 6);
+                        ?>
+                        <?php for ($i = 0; $i < $display_count; $i++):
+                            $row = $recent_special[$i];
+                            ?>
+                            <li class="col-12">
+                                <a href="view_song_details.php?sid=<?= urlencode($row['sid'] ?? '') ?>" class="wd-100p"
+                                    title="<?= htmlspecialchars($row['song_name'] ?? 'Song') ?>">
+                                    <img class="img-responsive img-in-grid"
+                                        src="<?= htmlspecialchars($row['song_poster'] ?? 'assets/img/default.png') ?>"
+                                        alt="<?= htmlspecialchars($row['song_name'] ?? 'Song') ?>">
+                                </a>
+                            </li>
+                        <?php endfor; ?>
+                    <?php else: ?>
+                        <li class="col-12 text-center text-muted tx-12 py-3">No special song set.</li>
+                    <?php endif; ?>
+                </ul>
+
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6 col-md-12">
+        <div class="card custom-card">
+            <div class="card-body h-100">
+
+                <div class="border-bottom-0 pt-0 pe-0 d-flex">
+                    <div>
+                        <label class="main-content-label mb-2">Slider</label>
+                        <span class="d-block tx-12 mb-3 text-muted">Slider's Songs</span>
+                    </div>
+                    <div class="ms-auto">
+                        <a href="javascript:void(0)" class="option-dots" data-bs-toggle="dropdown" aria-haspopup="true"
+                            aria-expanded="false"><i class="fe fe-more-vertical"></i></a>
+                        <div class="dropdown-menu">
+                            <a class="dropdown-item" href="view_slider.php">
+                                <b><i class="uil uil-window"></i> View All</b></a>
+                        </div>
+                    </div>
+                </div>
+
+                <?php if (!empty($recent_sliders)): ?>
+                    <div class="">
+                        <div id="mainSliderCarousel" class="carousel slide carousel-fade" data-bs-ride="carousel"
+                            data-bs-interval="3000">
+
+                            <div class="carousel-indicators">
+                                <?php foreach ($recent_sliders as $index => $row): ?>
+                                    <button type="button" data-bs-target="#mainSliderCarousel" data-bs-slide-to="<?= $index ?>"
+                                        class="<?= $index === 0 ? 'active' : '' ?>"
+                                        aria-current="<?= $index === 0 ? 'true' : 'false' ?>"
+                                        aria-label="Slide <?= $index + 1 ?>"></button>
+                                <?php endforeach; ?>
+                            </div>
+
+                            <div class="carousel-inner rounded-xl">
+                                <?php foreach ($recent_sliders as $index => $row):
+
+                                    $img_src_1 = htmlspecialchars(empty($row['song_poster']) ? 'perfect1.png' : $row['song_poster']);
+
+                                    $song_name = htmlspecialchars($row['song_name'] ?? 'Untitled Song');
+                                    ?>
+                                    <div class="carousel-item <?= $index === 0 ? 'active' : '' ?>">
+                                        <a href="view_song_details.php?sid=<?= urlencode($row['sid']) ?>"
+                                            title="<?= $song_name ?>">
+                                            <img src="<?= $img_src_1 ?>" class="d-block w-100" alt="<?= $song_name ?>">
+                                        </a>
+
+                                        <div class="carousel-caption d-none d-md-block text-start">
+                                            <h5 class="mb-0 text-xl font-bold text-white"><?= $song_name ?></h5>
+                                            <p class="text-sm text-gray-300 mb-0">
+                                                <?= htmlspecialchars($row['artist_names'] ?? 'Artist(s)') ?>
+                                            </p>
+                                        </div>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+
+                            <button class="carousel-control-prev" type="button" data-bs-target="#mainSliderCarousel"
+                                data-bs-slide="prev">
+                                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                                <span class="visually-hidden">Previous</span>
+                            </button>
+                            <button class="carousel-control-next" type="button" data-bs-target="#mainSliderCarousel"
+                                data-bs-slide="next">
+                                <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                                <span class="visually-hidden">Next</span>
+                            </button>
+
+                        </div>
+                    </div>
+                <?php else: ?>
+                    <div class="mt-3 bg-gray-50 rounded-lg border border-dashed border-gray-300">
+                        <p class="text-center text-gray-500 text-sm py-8">No slider images set. Add images via the Edit link
+                            above.</p>
+                    </div>
+                <?php endif; ?>
+            </div>
+        </div>
+    </div>
+
 
     <div class="col-md-6 genre_table">
         <div class="card custom-card mg-b-20">
@@ -597,32 +884,31 @@ include('connection.php');
                         </thead>
 
                         <tbody>
-                            <?php foreach ($recent_genres as $row): ?>
+                            <?php foreach ($recent_genres as $row):
+                                // 🚀 Genres Image માટે ફૉલબૅક લોજિક
+                                $genre_image_src = !empty($row['image']) ? htmlspecialchars($row['image']) : 'assets/img/favicon_1.png';
+                                ?>
                                 <tr>
-                                    <!-- Genre Image -->
                                     <td class="font-weight-semibold">
                                         <center>
-                                            <img src="<?= htmlspecialchars($row['image']) ?>" class=" rounded" height="50"
-                                                width="50">
+                                            <img src="<?= $genre_image_src ?>" class=" rounded" height="38" width="60"
+                                                alt="Genre Image">
                                         </center>
                                     </td>
 
-                                    <!-- Genre Name -->
                                     <td class="text-center">
                                         <?= htmlspecialchars($row['name']) ?>
                                     </td>
 
-                                    <!-- Edit Button -->
                                     <td class="text-center">
                                         <a href="edit_genres.php?gid=<?= $row['gid'] ?>">
                                             <i class="uil uil-pen btn btn-md btn-success"></i>
                                         </a>
                                     </td>
 
-                                    <!-- Delete Button -->
                                     <td class="text-center">
                                         <a href='delete.php?gid=<?= htmlspecialchars($row['gid']) ?>'
-                                            class="song-delete-btn">
+                                            class="genre-delete-btn">
                                             <i class='uil uil-trash-alt btn btn-md btn-danger'></i>
                                         </a>
                                     </td>
@@ -638,7 +924,77 @@ include('connection.php');
     </div>
 
 
-    <div class="col-lg-6 artist_table">
+    <div class="col-md-6 language_table">
+        <div class="card custom-card mg-b-20">
+            <div class="card-body">
+                <div class="border-bottom-0 pt-0 pe-0 d-flex">
+                    <div>
+                        <label class="main-content-label mb-2">Language</label>
+                        <span class="d-block tx-12 mb-3 text-muted">Recent 5 Language Details</span>
+                    </div>
+                    <div class="ms-auto">
+                        <a href="javascript:void(0)" class="option-dots" data-bs-toggle="dropdown" aria-haspopup="true"
+                            aria-expanded="false"><i class="fe fe-more-vertical"></i></a>
+                        <div class="dropdown-menu">
+
+                            <a class="dropdown-item" href="view_language.php">
+                                <b><i class="uil uil-window"></i>
+                                    View All</b></a>
+                        </div>
+                    </div>
+                </div>
+                <div class="table-responsive tasks">
+                    <table class="table card-table table-vcenter text-nowrap mb-0 border">
+                        <thead>
+                            <tr>
+                                <th class="wd-lg-20p text-center">Image</th>
+                                <th class="wd-lg-20p text-center">Name</th>
+                                <th class="wd-lg-20p text-center">Edit</th>
+                                <th class="wd-lg-20p text-center">Delete</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            <?php foreach ($recent_languages as $row):
+                                // 🚀 Language Image માટે ફૉલબૅક લોજિક
+                                $language_image_src = !empty($row['image']) ? htmlspecialchars($row['image']) : 'assets/img/favicon_1.png';
+                                ?>
+                                <tr>
+                                    <td class="font-weight-semibold">
+                                        <center>
+                                            <img src="<?= $language_image_src ?>" class=" rounded" height="38" width="60"
+                                                alt="Language Image">
+                                        </center>
+                                    </td>
+
+                                    <td class="text-center">
+                                        <?= htmlspecialchars($row['name']) ?>
+                                    </td>
+
+                                    <td class="text-center">
+                                        <a href="edit_languages.php?lid=<?= $row['lid'] ?>">
+                                            <i class="uil uil-pen btn btn-md btn-success"></i>
+                                        </a>
+                                    </td>
+
+                                    <td class="text-center">
+                                        <a href='delete.php?lid=<?= htmlspecialchars($row['lid']) ?>'
+                                            class="language-delete-btn"> <i
+                                                class='uil uil-trash-alt btn btn-md btn-danger'></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+
+                        </tbody>
+
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-12 artist_table">
         <div class="card custom-card mg-b-20">
             <div class="card-body">
                 <div class="border-bottom-0 pt-0 pe-0 d-flex">
@@ -659,41 +1015,80 @@ include('connection.php');
                 </div>
 
                 <div class="table-responsive tasks">
-                    <table class="table card-table table-vcenter text-nowrap mb-0  border">
+                    <table class="table card-table table-vcenter text-nowrap mb-0 border">
                         <thead>
                             <tr>
                                 <th class="wd-lg-10p text-center">Image</th>
                                 <th class="wd-lg-20p text-center">Name</th>
-                                <th class="wd-lg-20p text-center">Edit</th>
-                                <th class="wd-lg-20p text-center">Delete</th>
+                                <th class="wd-lg-28p text-center">Description</th>
+                                <th class="wd-lg-10p text-center">Image(Transparent)</th>
+                                <th class="wd-lg-10p text-center">Edit</th>
+                                <th class="wd-lg-10p text-center">Delete</th>
                             </tr>
                         </thead>
 
                         <tbody>
-                            <?php foreach ($recent_artists as $row): ?>
+                            <?php foreach ($recent_artists as $row):
+                                // 🚀 photo માટે ફૉલબૅક લોજિક
+                                $artist_photo_src = !empty($row['photo']) ? htmlspecialchars($row['photo']) : 'favicon_1.png';
+                                // 🚀 image માટે ફૉલબૅક લોજિક
+                                $artist_image_src = !empty($row['image']) ? htmlspecialchars($row['image']) : 'favicon_1.png';
+                                ?>
                                 <tr>
-                                    <!-- Artist photo -->
                                     <td class="text-center align-middle">
-                                        <img src="<?= htmlspecialchars($row['photo']) ?>"
-                                            style="height: 60px; width: 45px; object-fit: cover;" class="rounded">
+                                        <img src="<?= $artist_photo_src ?>"
+                                            style="height: 60px; width: 45px; object-fit: cover;" class="rounded"
+                                            alt="Artist Photo">
                                     </td>
 
-                                    <!-- Artist name -->
                                     <td class="text-center">
                                         <?= htmlspecialchars($row['name']) ?>
                                     </td>
 
-                                    <!-- Edit button -->
+                                    <td class="text-center align-middle">
+                                        <div class="bg-light text-dark" style="
+                                        /* Set max width to control column size */
+                                        max-width: 400px; 
+                                        /* Set max height to control row height */
+                                        max-height: 80px; 
+                                        /* Enable vertical scrollbar only if needed */
+                                        overflow-y: auto; 
+                                        /* Hide horizontal scrollbar */
+                                        overflow-x: hidden; 
+                                        
+                                        /* ESSENTIAL FIX: Force long words/strings to wrap */
+                                        word-wrap: break-word; 
+                                        overflow-wrap: break-word;
+                                        white-space: normal; /* Ensure text wrapping is active */
+                                        
+                                        /* Visual styling */
+                                        
+                                        font-size: 0.875rem;
+                                        padding: 8px; 
+                                        border-radius: 6px;
+                                    ">
+                                            <?php
+                                            $description = $row['description'] ?? ''; // PHP 7.0+ Null Coalescing Operator
+                                            echo htmlspecialchars(!empty($description) ? $description : "No description...");
+                                            ?>
+                                        </div>
+                                    </td>
+
+                                    <td class="text-center align-middle">
+                                        <img src="<?= $artist_image_src ?>"
+                                            style="height: 60px; width: 45px; object-fit: cover;" class="rounded"
+                                            alt="Artist Image">
+                                    </td>
+
                                     <td class="text-center">
                                         <a href="edit_artist.php?arid=<?= $row['arid'] ?>">
                                             <i class="uil uil-pen btn btn-md btn-success"></i>
                                         </a>
                                     </td>
 
-                                    <!-- Delete button -->
                                     <td class="text-center">
-                                        <a href="delete.php?arid=<?= $row['arid'] ?>">
-                                            <i class="uil uil-trash-alt btn btn-md btn-danger"></i>
+                                        <a href="delete.php?arid=<?= $row['arid'] ?>" class="artist-delete-btn"> <i
+                                                class="uil uil-trash-alt btn btn-md btn-danger"></i>
                                         </a>
                                     </td>
                                 </tr>
@@ -705,7 +1100,6 @@ include('connection.php');
             </div>
         </div>
     </div>
-
 
     <div class="col-md-12 song_table" id="exportexample">
         <div class="card custom-card mg-b-20">
@@ -731,8 +1125,8 @@ include('connection.php');
                             <tr>
                                 <th class="wd-lg-10p text-center">Image</th>
                                 <th class="wd-lg-10p text-center">Name</th>
-                                <th class="wd-lg-10p text-center">Author</th>
-                                <th class="wd-lg-10p text-center">Genres</th>
+                                <th class="wd-lg-10p text-center">Artist(s)</th>
+                                <th class="wd-lg-10p text-center">Genre(s)</th>
                                 <th class="wd-lg-10p text-center">Album</th>
                                 <th class="wd-lg-10p text-center">Length</th>
                                 <th class="wd-lg-10p text-center">Edit</th>
@@ -740,82 +1134,106 @@ include('connection.php');
                             </tr>
                         </thead>
                         <tbody>
-                            <?php foreach ($recent_songs as $row): ?>
+                            <?php
+                            if (!empty($recent_songs) && is_array($recent_songs)):
+                                foreach ($recent_songs as $row):
+                                    // 🚀 અહીં ફેરફાર કર્યો છે 🚀
+                                    // જો $row['image'] ખાલી હોય, તો 'favicon_1.png' નો ઉપયોગ કરો.
+                                    $song_image = !empty($row['image']) ? htmlspecialchars($row['image']) : 'favicon_1.png';
+                                    ?>
+                                    <tr>
+                                        <td class="font-weight-semibold">
+                                            <center>
+                                                <img src="<?= $song_image ?>" class="rounded" height="50" width="50"
+                                                    alt="Song Image">
+                                            </center>
+                                        </td>
+
+                                        <td class="text-center">
+                                            <h6 class="tx-13"><?= htmlspecialchars($row['name'] ?? 'N/A') ?></h6>
+                                        </td>
+
+                                        <td class="text-center">
+                                            <h6 class="tx-13">
+                                                <?php if (!empty($row['artist_names']) && !empty($row['artist_ids'])): ?>
+                                                    <?php
+                                                    $artist_names = explode(', ', $row['artist_names']);
+                                                    $artist_ids = explode(', ', $row['artist_ids']);
+                                                    foreach ($artist_names as $index => $artist_name):
+                                                        $artist_id = isset($artist_ids[$index]) ? $artist_ids[$index] : '';
+                                                        ?>
+                                                        <a href="view_artist_details.php?arid=<?= urlencode($artist_id) ?>"
+                                                            style="text-decoration: none;">
+                                                            <span class="badge rounded-pill text-light bg-primary"
+                                                                style="font-weight: normal; font-size: 13px; padding: 5px 15px;">
+                                                                <?= htmlspecialchars($artist_name) ?>
+                                                            </span>
+                                                        </a>
+                                                    <?php endforeach; ?>
+                                                <?php else: ?>
+                                                    <span class="text-danger">Unknown</span>
+                                                <?php endif; ?>
+                                            </h6>
+                                        </td>
+
+                                        <td class="text-center">
+                                            <h6 class="tx-13">
+                                                <?php if (!empty($row['genre_names']) && !empty($row['genre_ids'])): ?>
+                                                    <?php
+                                                    $genre_names = explode(', ', $row['genre_names']);
+                                                    $genre_ids = explode(', ', $row['genre_ids']);
+                                                    foreach ($genre_names as $index => $genre_name):
+                                                        $genre_id = isset($genre_ids[$index]) ? $genre_ids[$index] : '';
+                                                        ?>
+                                                        <a href="view_genre_details.php?gid=<?= urlencode($genre_id) ?>"
+                                                            style="text-decoration: none;">
+                                                            <span class="badge rounded-pill text-light bg-dark"
+                                                                style=" font-weight: normal; font-size: 13px; padding: 5px 15px;">
+                                                                <?= htmlspecialchars($genre_name) ?>
+                                                            </span>
+                                                        </a>
+                                                    <?php endforeach; ?>
+                                                <?php else: ?>
+                                                    <span class="text-danger">Unknown</span>
+                                                <?php endif; ?>
+                                            </h6>
+                                        </td>
+
+                                        <td class="text-center">
+                                            <h6 class="tx-13">
+                                                <?= !empty($row['album']) ? htmlspecialchars($row['album']) : '<span style="color: gray;">N/A</span>' ?>
+                                            </h6>
+                                        </td>
+
+                                        <td class="text-center">
+                                            <h6 class="tx-13"><?= htmlspecialchars($row['length'] ?? 'N/A') ?></h6>
+                                        </td>
+
+                                        <td class="text-center">
+                                            <a href="edit_songs.php?sid=<?= $row['sid'] ?? '' ?>">
+                                                <i class="uil uil-pen btn btn-md btn-success"></i>
+                                            </a>
+                                        </td>
+
+                                        <td class="text-center">
+                                            <a href='delete.php?sid=<?= htmlspecialchars($row['sid'] ?? '') ?>'
+                                                class="song-delete-btn">
+                                                <i class='uil uil-trash-alt btn btn-md btn-danger'></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                <?php endforeach;
+                            else: ?>
                                 <tr>
-                                    <td class="font-weight-semibold">
-                                        <center>
-                                            <img src="<?= htmlspecialchars($row['image']) ?>" class="rounded" height="50"
-                                                width="50">
-                                        </center>
-                                    </td>
-
-                                    <td class="text-center">
-                                        <h6 class="tx-13"><?= htmlspecialchars($row['name']) ?></h6>
-                                    </td>
-
-                                    <td class="text-center">
-                                        <?php if (!empty($row['artists'])): ?>
-                                            <?php foreach ($row['artists'] as $artist): ?>
-                                                <a href="view_artist_details.php?arid=<?= $artist['arid'] ?>">
-                                                    <span class="px-2 py-1 rounded-pill bg-dark text-white mx-1"
-                                                        style="font-size: 12px;">
-                                                        <?= htmlspecialchars($artist['name']) ?>
-                                                    </span>
-                                                </a>
-                                            <?php endforeach; ?>
-                                        <?php else: ?>
-                                            <span style="color: gray;">No artist</span>
-                                        <?php endif; ?>
-                                    </td>
-
-                                    <td class="text-center">
-                                        <?php if (!empty($row['genres'])): ?>
-                                            <?php foreach ($row['genres'] as $genre): ?>
-                                                <a href="view_genre.php?gid=<?= $genre['gid'] ?>">
-                                                    <span class="px-2 py-1 rounded-pill bg-primary text-white mx-1"
-                                                        style="font-size: 12px;">
-                                                        <?= htmlspecialchars($genre['name']) ?>
-                                                    </span>
-                                                </a>
-                                            <?php endforeach; ?>
-                                        <?php else: ?>
-                                            <span style="color: gray;">No genre</span>
-                                        <?php endif; ?>
-                                    </td>
-
-                                    <td class="text-center">
-                                        <h6 class="tx-13">
-                                            <?= !empty($row['album']) ? htmlspecialchars($row['album']) : '<span style="color: gray;">N/A</span>' ?>
-                                        </h6>
-                                    </td>
-
-                                    <td class="text-center">
-                                        <h6 class="tx-13"><?= htmlspecialchars($row['length']) ?></h6>
-                                    </td>
-
-                                    <td class="text-center">
-                                        <a href="edit_songs.php?sid=<?= $row['sid'] ?>">
-                                            <i class="uil uil-pen btn btn-md btn-success"></i>
-                                        </a>
-                                    </td>
-
-                                    <td class="text-center">
-                                        <a href='delete.php?sid=<?= htmlspecialchars($row['sid']) ?>'
-                                            class="song-delete-btn">
-                                            <i class='uil uil-trash-alt btn btn-md btn-danger'></i>
-                                        </a>
-                                    </td>
+                                    <td colspan="8" class="text-center text-muted">No recent songs found.</td>
                                 </tr>
-                            <?php endforeach; ?>
-
+                            <?php endif; ?>
                         </tbody>
                     </table>
                 </div>
             </div>
         </div>
     </div>
-
-
 
 
     <!-- <div class="col-md-12">

@@ -1,135 +1,87 @@
 <?php
+// FILE: view_artist_details.php
+
 include('demo.php');
 include('hhh.php');
-include('connection.php');
+// include('connection.php'); // Not needed if using file_get_contents for API
 
-$arid = $_GET['arid'];
+// 1. Get the Artist ID from the URL
+$arid = $_GET['arid'] ?? 0;
 
-$apiUrl = "http://localhost/SIngIT/flutter_crud/getArtistDetails.php?arid=$arid"; // Replace with dynamic arid
-$response = file_get_contents($apiUrl);
-$artist = json_decode($response, true);
+// Note: Replace with actual path or use 'http://localhost/SIngIT/flutter_crud/getArtistDetails.php?arid=' . $arid
+$apiUrl = "http://localhost/SIngIT/flutter_crud/getArtistDetails.php?arid=" . urlencode($arid);
+$response = @file_get_contents($apiUrl); // Use @ to suppress file_get_contents errors if the API is down
+$data = json_decode($response, true); // Decode the full response array
+
+// Check if data is valid and has 'details'
+if (!empty($data) && !empty($data['details'])) {
+    $artist = $data['details'];
+    $songs = $data['songs'] ?? []; // Extract songs array, default to empty array if not present
+} else {
+    $artist = null;
+    $songs = [];
+}
+
+// --- Image Fallback Logic ---
+// Note: Using 'assets/img/default_profile.png' as a generic default if no Cloudinary URL is present.
+$default_profile_image = 'assets/img/default_profile.png';
+
+// 🚀 Logic for 'photo' field (Profile picture)
+if ($artist && !empty($artist['photo'])) {
+    $artist_photo_src = htmlspecialchars($artist['photo']);
+} else {
+    $artist_photo_src = $default_profile_image;
+}
+
+// 🚀 Logic for 'image' field (Banner/Extra image)
+if ($artist && !empty($artist['image'])) {
+    $artist_image_src = htmlspecialchars($artist['image']);
+} else {
+    // Using a different placeholder for the secondary image, maybe a blank one
+    $artist_image_src = 'assets/img/transparent_placeholder.png';
+}
 
 ?>
 
 
 <style>
-    .status-g {
-        display: inline-block;
-        padding: 10px 20px;
-        background-color: #e6f4ea;
-        color: #34a853;
-        border-radius: 20px;
-        font-family: Arial, sans-serif;
-        font-size: 16px;
-        font-weight: bold;
-    }
+/* ... Your existing styles remain here for brevity ... */
+.btn-md,
+.btn-lg {
+    font-size: 17px;
+    border-radius: 5px;
+    font-weight: bold;
+}
 
-    .btn-success1 {
-        display: inline-block;
-        padding: 10px 20px;
-        background-color: #e6f4ea;
-        color: #34a853;
-        border-radius: 20px;
-        font-family: Arial, sans-serif;
-        font-size: 16px;
-        font-weight: bold;
-        transition: 0.3s;
-        margin-left: 10px;
-    }
+/* Add a class for the delete button */
+.delete-artist-alert {
+    cursor: pointer;
+}
 
-    .btn-success1:hover {
-        background-color: #34a853;
-        color: white;
-    }
+/* Styles adapted for Genre/Artist consistency */
+.rounded-20 {
+    border-radius: 20px;
+}
 
-    .btn-danger1 {
-        display: inline-block;
-        padding: 10px 20px;
-        background-color: rgba(217, 48, 37, 0.15);
-        color: #D93025;
-        border-radius: 20px;
-        font-family: Arial, sans-serif;
-        font-size: 16px;
-        font-weight: bold;
-        margin-left: 10px;
-    }
+/* Small rounding for song image list */
+.rounded4 {
+    border-radius: 15%;
+}
 
-    .btn-danger1:hover {
-        background-color: #D93025;
-        color: white;
-    }
-
-    .status-r {
-        display: inline-block;
-        padding: 10px 20px;
-        background-color: rgba(217, 48, 37, 0.15);
-        color: #D93025;
-        border-radius: 20px;
-        font-family: Arial, sans-serif;
-        font-size: 16px;
-        font-weight: bold;
-    }
-
-    .status-y {
-        display: inline-block;
-        padding: 10px 20px;
-        background-color: rgba(249, 171, 0, 0.15);
-        color: #F9AB00;
-        border-radius: 20px;
-        font-family: Arial, sans-serif;
-        font-size: 16px;
-        font-weight: bold;
-    }
-
-    .status-p {
-        display: inline-block;
-        padding: 10px 20px;
-        background: rgba(241, 126, 217, 0.15);
-        color: #F186CE;
-        border-radius: 20px;
-        font-family: Arial, sans-serif;
-        font-size: 16px;
-        font-weight: bold;
-    }
-
-    .btn-md {
-        font-size: 17px;
-        border-radius: 5px;
-        font-weight: bold;
-    }
-
-    #border {
-        border: 1px solid lightgray;
-        border-radius: 10px;
-        padding-left: 30px;
-        padding-top: 20px;
-        padding-bottom: 20px;
-        padding-right: 30px;
-    }
-
-    .card-body {
-        padding-right: 80px;
-        padding-left: 80px;
-        padding-top: 50px;
-    }
-
-    .media-body {
-        margin: 10px;
-        margin-left: 20px;
-
-    }
-
-    .rounded4 {
-        max-width: 12.5%;
-        /* padding-right: 0px; */
-        /* margin: 10px; */
-        /* border-radius: 100px; */
-
-    }
+/* New style for the secondary image: Adjusted width/height for column layout */
+.artist-secondary-img {
+    height: 250px;
+    /* Increased height to fit next to bio */
+    width: 100%;
+    object-fit: cover;
+    border-radius: 10px;
+    border: 1px solid #ddd;
+    margin-bottom: 15px;
+    /* Add some space below the image */
+}
 </style>
 
 
-<!-- Page Header -->
 <div class="page-header">
     <div>
         <h2 class="main-content-title tx-24 mg-b-5">View Artist Details</h2>
@@ -141,145 +93,165 @@ $artist = json_decode($response, true);
     </div>
 
 </div>
-<!-- End Page Header -->
-
-<!-- Row -->
 <div class="row row-sm">
     <div class="col-lg-12 col-md-12">
         <div class="card custom-card productdesc">
             <div class="card-body h-100">
                 <div class="row">
 
-                    <?php if (!empty($artist) && empty($artist['error'])): ?>
+                    <?php if ($artist): ?>
 
 
-                        <div class="col-xl-12" id="cnter">
-                            <div class="row">
+                    <div class="col-xl-12" id="cnter">
 
-                                <div class="col-md-12 col-sm-9 col-8">
-                                    <!-- <div class="col-md-10 offset-md-1 col-sm-9 col-8"> -->
-                                    <div class="product-carousel">
-                                        <div id="carousel" class="carousel slide" data-bs-ride="false">
-                                            <div class="carousel-inner">
-                                                <div class="setimg">
-                                                    <div class="img">
-                                                        <!-- <img src="https://i.pinimg.com/originals/26/ea/fc/26eafc0b14488fea03fa8fa9751203ff.jpg"> -->
-                                                        <img src="<?= htmlspecialchars($artist['photo']) ?>"
-                                                            class="rounded-20"
-                                                            style="height: 210px; width:170px; object-fit: cover; object-position: top;">
-                                                        <b class="tx-40 mx-3"><?= htmlspecialchars($artist['name']) ?></b>
-                                                        <!-- <b class="tx-28 mx-3">HR Name</b> -->
-                                                        <!-- <?php
-                                                        if ($status == 1) {
-                                                            echo "<div class='status-g'>Approved</div>";
-                                                        } elseif ($status == 2) {
-                                                            echo "<div class='status-r'>Rejected</div>";
-                                                        } else {
-                                                            echo "<div class='status-y'>Pending</div>";
-                                                        }
-                                                        ?> -->
+                        <div class="row">
+                            <div class="d-flex align-items-center mb-3">
 
-                                                        <td>
-                                                            <a href='edit_artist.php?arid=<?= $row['arid'] ?>'><button
-                                                                    class="btn btn-md btn-success1" onclick="not7()"><i
-                                                                        class='uil uil-pen'></i> Edit</button></a>
-                                                        </td>
-                                                        <td>
-                                                            <a href='delete.php?arid=<?= $row['arid'] ?>'><button
-                                                                    class="btn btn-md btn-danger1" onclick="not7()">
-                                                                    <i class='uil uil-trash-alt'></i> Delete</button></a>
-                                                        </td>
-                                                    </div>
-                                                </div>
-                                            </div>
+                                <img src="<?= $artist_photo_src ?>" class=" rounded-20 me-4"
+                                    style="height: 210px; width: 170px; object-fit: cover; object-position: top; border: 2px solid #3B3B64; box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);"
+                                    alt="Artist Photo">
 
-                                            <!-- man thai to chnaage kar j  -->
 
-                                            <!-- <div class="text-center mt-4 mb-4 btn-list">
-                                            <a href="ecommerce-cart.html" class="btn ripple btn-primary"><i
-                                                    class="fe fe-shopping-cart"> </i> Add to
-                                                cart</a>
-                                            <a href="javascript:void(0);" class="btn ripple btn-secondary me-2"><i
-                                                    class="fe fe-credit-card"> </i> Buy Now</a>
-                                        </div> -->
-                                        </div>
+                                <div class="flex-grow-1">
+                                    <h1 class="fw-bold mb-4" style="font-size: 48px;">
+
+                                        <?= htmlspecialchars($artist['name']) ?>
+                                    </h1>
+
+                                    <div class="d-flex flex-wrap gap-3">
+                                        <a href='edit_artist.php?arid=<?= htmlspecialchars($arid) ?>'
+                                            class="btn btn-success btn-lg fw-bold"><i class="uil uil-pen"></i> Edit</a>
+
+                                        <a href='delete.php?arid=<?= htmlspecialchars($arid) ?>'
+                                            class="btn btn-danger btn-lg fw-bold delete-artist-alert"
+                                            data-arid="<?= htmlspecialchars($arid) ?>">
+                                            <i class="uil uil-trash-alt"></i>
+                                            Delete
+                                        </a>
                                     </div>
                                 </div>
                             </div>
-                            <div class="mt-4">
-                                <b class="tx-26">Songs</b>
-                                <div class="">
-                                    <div class="row">
-                                        <!-- table che... -->
-                                        <!-- <div class="col-xl-12">
-                                <div class="table-responsive">
-                                    <table class="table mb-0 border-top table-bordered text-nowrap">
-                                        <tbody>
-                                            <tr>
-                                                <th scope="row">Category</th>
-                                                <td>Watches</td>
-                                            </tr>
-                                            
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div> -->
+                        </div>
 
-                                        <div class="col-xl-12 mt-4">
-                                            <div class="card">
-                                                <div class="card-body p-0 mb-3 mt-3">
-                                                    <?php foreach ($artist['songs'] as $song): ?>
-                                                        <div class="p-4 border-bottom border-top">
-                                                            <!-- Section 1: Image + Info -->
-                                                            <div class="d-flex align-items-center">
-                                                                <img src="<?= htmlspecialchars($song['image']) ?>"
-                                                                    class="rounded4"
-                                                                    style="border-radius: 15%; width: 80px; height: 80px; object-fit: cover; margin-right: 15px;">
+                        <hr class="mt-4 mb-4">
 
-                                                                <div class="flex-grow-1">
-                                                                    <div
-                                                                        class="d-flex justify-content-between align-items-center">
-                                                                        <h5 class="mb-1 tx-20">
-                                                                            <a class="text-primary fw-bold"
-                                                                                href="view_song_details.php?sid=<?= $song['sid']; ?>">
-                                                                                <?= htmlspecialchars($song['name']) ?>
-                                                                            </a>
-                                                                        </h5>
-                                                                        <span
-                                                                            class="font-15 uil uil-clock-eight text-warning fw-bold">
-                                                                            &nbsp;<?= htmlspecialchars($song['length']) ?>
-                                                                        </span>
-                                                                    </div>
+                        <div class="row">
 
-                                                                    <span class="text-muted tx-15"><i class="uil uil-okta"></i>
-                                                                        <?= htmlspecialchars($song['album']) ?>
-                                                                    </span>
-                                                                </div>
+                            <div class="col-md-2">
+
+                                <img src="<?= $artist_image_src ?>" class=" rounded-20 me-4"
+                                    style="height: 210px; width: 170px; object-fit: cover; object-position: top; border: 2px solid #3B3B64; box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);"
+                                    alt="Artist Photo(Transparent)">
+                            </div>
+
+                            <div class="col-md-8">
+                                <h3 class="tx-24 fw-bold mb-3">Biography</h3>
+                                <p class="text-muted tx-16 mx-2" style="line-height: 1.8; ">
+                                    <?= htmlspecialchars($artist['description']) ?>
+                                </p>
+                            </div>
+
+                        </div>
+                        <hr class="mt-4 mb-4">
+
+
+                        <div class="mt-1">
+
+                            <b class="tx-30">Songs
+                                (<?= htmlspecialchars($artist['song_count'] ?? 0) ?>)</b>
+                            <div class="">
+                                <div class="row">
+
+                                    <div class="col-xl-12 mt-4">
+                                        <div class="card">
+                                            <div class="card-body p-0 mb-3 mt-3">
+
+                                                <?php
+                                                    if (!empty($songs)):
+                                                        foreach ($songs as $song):
+                                                            // 🎶 Song Image Fallback 
+                                                            $song_image_src = !empty($song['image']) ? htmlspecialchars($song['image']) : $default_profile_image;
+                                                            ?>
+                                                <div class="p-4 border-bottom border-top">
+
+                                                    <div class="d-flex align-items-center">
+
+                                                        <img src="<?= $song_image_src ?>" class="rounded4"
+                                                            style="border-radius: 15%; width: 80px; height: 80px; object-fit: cover; margin-right: 15px;"
+                                                            alt="Song Image">
+
+
+                                                        <div class="flex-grow-1">
+
+                                                            <div
+                                                                class="d-flex justify-content-between align-items-center">
+
+                                                                <h5 class="mb-1 tx-20">
+
+                                                                    <a class="text-primary fw-bold"
+                                                                        href="view_song_details.php?sid=<?= $song['sid']; ?>">
+                                                                        <?= htmlspecialchars($song['name']) ?>
+
+                                                                    </a>
+
+                                                                </h5>
+
+                                                                <span
+                                                                    class="font-15 uil uil-clock-eight text-warning fw-bold">
+                                                                    &nbsp;<?= htmlspecialchars($song['length'] ?? 'N/A') ?>
+                                                                </span>
                                                             </div>
 
-                                                            <!-- Section 2: Buttons -->
-                                                            <div class="d-flex justify-content-between mt-3">
-                                                                <!-- Section 1: Edit + Block -->
-                                                                <div class="d-flex gap-2">
-                                                                    <a href="edit_job.php?sid=<?= $song['sid']; ?>"
-                                                                        class="btn btn-success btn-md"><i
-                                                                            class="uil uil-pen"></i> Edit</a> &nbsp;
-                                                                    <a href="block_job.php?sid=<?= $song['sid']; ?>"
-                                                                        class="btn btn-danger btn-md"><i
-                                                                            class="uil uil-trash-alt"></i> Delete</a>
-                                                                </div>
 
-                                                                <!-- Section 2: View Details -->
-                                                                <div>
-                                                                    <a href="view_song_details.php?sid=<?= $song['sid']; ?>"
-                                                                        class="btn btn-primary btn-md"><i
-                                                                            class="fal fa-long-arrow-right ms-3"></i> View Job
-                                                                        Details</a>
-                                                                </div>
-                                                            </div>
+                                                            <span class="text-muted tx-15"><i
+                                                                    class="uil uil-user-square"></i>
+                                                                <?= htmlspecialchars($song['artist_names'] ?? 'N/A') ?>
+                                                            </span>
+
                                                         </div>
-                                                    <?php endforeach; ?>
+
+                                                    </div>
+
+
+                                                    <div class="d-flex justify-content-between mt-3">
+
+
+                                                        <div class="d-flex gap-2">
+
+
+                                                            <a href="edit_songs.php?sid=<?= $song['sid']; ?>"
+                                                                class="btn btn-success btn-lg fw-bold"><i
+                                                                    class="uil uil-pen"></i> Edit</a>
+                                                            &nbsp;
+
+                                                            <a href="delete.php?sid=<?= $song['sid']; ?>"
+                                                                class="btn btn-danger btn-lg fw-bold delete-song-alert"
+                                                                data-sid="<?= $song['sid']; ?>"><i
+                                                                    class="uil uil-trash-alt"></i>
+                                                                Delete</a>
+
+                                                        </div>
+
+                                                        <div>
+
+                                                            <a href="view_song_details.php?sid=<?= $song['sid']; ?>"
+                                                                class="btn btn-primary btn-lg fw-bold"><i
+                                                                    class="uil uil-expand-from-corner"></i> View Song
+
+                                                                Details</a>
+
+                                                        </div>
+
+                                                    </div>
                                                 </div>
+                                                <?php endforeach;
+                                                    else: ?>
+                                                <div class="p-4 border-bottom border-top text-center text-muted">No
+                                                    songs found for this artist.</div>
+                                                <?php
+                                                    endif;
+                                                    ?>
+
                                             </div>
                                         </div>
                                     </div>
@@ -287,8 +259,11 @@ $artist = json_decode($response, true);
                             </div>
                         </div>
 
+                    </div>
+
                     <?php else: ?>
-                        <div class="alert alert-danger">Artist not found.</div>
+                    <div class="alert alert-danger">Artist not found or API returned empty data.
+                    </div>
                     <?php endif; ?>
 
 
@@ -298,47 +273,183 @@ $artist = json_decode($response, true);
         </div>
     </div>
 </div>
-<!-- End Row -->
-
-
-</div>
-</div>
-</div>
-<!-- END MAIN-CONTENT -->
-
-
-</div>
-<!-- END PAGE -->
-
-<!-- SCRIPTS -->
-
 <?php
 include('fff.php');
 ?>
 
 
 <script>
-    function not7() {
-        notif({
-            msg: "<b>Approved : </b>Please Wait... Sending A Mail...",
-            type: "success"
-        });
+// H                                            elper function to display error alerts
+function showErrorAlert(message) {
+    swal({
+        title: "Error",
+        text: message,
+        type: "error",
+        confirmButtonClass: "btn btn-danger",
+        confirmButtonText: "Ok",
+    });
+}
+
+// F                                            unction to extract the Artist ID from the delete link's href
+func tion extractArtistId(url) {
+    var match = url.match(/[?&]arid=(\d+)/);
+    return match ? match[1] : null;
+}
+
+
+// --- 🎤 Artist Delete Logic ---
+$('.delete-artist-alert').on('click', function(e) {
+    e.preventDefault();
+
+    var deleteUrl = $(this).attr('href');
+    var arid_value = $(this).data('arid'); // Use the data-arid attribute for robustness
+
+    if (!arid_value) {
+        arid_value = extractArtistId(deleteUrl);
+        if (!arid_value) {
+            showErrorAlert("Artist ID not found for deletion.");
+            return;
+        }
     }
+
+    // Main Confirmation Pop-up
+    swal({
+            title: "Are you sure?",
+            text: "You will not be able to recover this artist and associated songs!",
+            type: "warning",
+            showCancelButton: true,
+            confirmButtonClass: "btn btn-danger",
+            confirmButtonText: "Yes, delete it!",
+            cancelButtonText: "No, cancel plx!",
+            closeOnConfirm: false,
+            clos eOnCancel: false
+        },
+        function(isConfirm) {
+            if (isCo nfirm) {
+                swal({
+                    title: "Deleting...",
+                    text: "Please wait while we delete the artist.",
+                    type: "info",
+                    showConfirmButton: false,
+                });
+
+                // A                         JAX Call to deleteArtist.php
+                $.aj ax({
+                    // 🔔 IMPORTANT: Update this URL if your Artist Delete API is different
+                    url: 'http://localhost/SIngIT/flutter_crud/deleteArtist.php',
+                    type: 'POST',
+                    data: {
+                        arid: arid_value
+                    },
+                    data Type: 'json',
+                    success: function(response) {
+                        if (resp onse.status === 'success') {
+                            swal({
+                                title: "Deleted!",
+                                text: response.message,
+                                type: "success",
+                                showConfirmButton: false,
+                                timer: 2000
+                            });
+
+                            setT imeout(function() {
+                                // Redirecting to the main view_artist list after successful deletion
+                                window.location.href = 'view_artist.php';
+                            }, 2000);
+
+                        } else {
+                            showErrorAlert(response.message || "Failed to delete artist.");
+                        }
+                    },
+                    error: f unction(xhr, status, error) {
+                        showErrorAlert(
+                            "Server error or connection failed. Please check the network and API URL."
+                        );
+                    }
+                });
+
+            } else {
+                swal({
+                    title: "Cancelled",
+                    text: "Your artist is safe :)",
+                    type: "error",
+                    showConfirmButton: false,
+                    timer: 2000
+                });
+            }
+        });
+});
+
+// --- 🎶 Song Delete Logic (Re-used for the  songs list in this view) ---
+// If you want to enable SweetAlert delete on the songs listed here, add this:
+$('.delete-song-alert').on('click', function(e) {
+    e.preventDefault();
+
+    var deleteUrl = $(this).attr('href');
+    var sid_value = $(this).data('sid');
+
+    if (!sid_value) {
+        showErrorAlert("Song ID not found for deletion.");
+        return;
+    }
+
+    swal({
+            title: "Delete Song?",
+            text: "Are you sure you want to delete this song?",
+            type: "warning",
+            showCancelButton: true,
+            confirmButtonClass: "btn btn-danger",
+            confirmButtonText: "Yes, delete it!",
+            cancelButtonText: "No, cancel plx!",
+            closeOnConfirm: false,
+            clos eOnCancel: false
+        },
+        function(isConfirm) {
+            if (isConfirm) {
+                swal({
+                    title: "Deleting...",
+                    text: "Please wait...",
+                    type: "info",
+                    showConfirmButton: false,
+                });
+
+                $.aj ax({
+                    url: 'http://localhost/SIngIT/flutter_crud/deleteSong.php',
+                    type: 'POST',
+                    data: {
+                        sid: sid_value
+                    },
+                    data Type: 'json',
+                    success: function(response) {
+                        if (resp onse.status === 'success') {
+                            swal({
+                                title: "Deleted!",
+                                text: response.message,
+                                type: "success",
+                                showConfirmButton: false,
+                                timer: 1500
+                            });
+                            // S                   imple reload to refresh the song list after deletion
+                            setTimeout(function() {
+                                window.location.reload();
+                            }, 1500);
+                        } else {
+                            showErrorAlert(response.message || "Failed to delete song.");
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        showErrorAlert("Server error or connection failed (Song Delete).");
+                    }
+                });
+            } else {
+                swal({
+                    title: "Cancelled",
+                    text: "Song deletion cancelled.",
+                    type: "error",
+                    showConfirmButton: false,
+                    timer: 1000
+                });
+            }
+        });
+});
 </script>
-
-
-<!-- INTERNAL DATA TABLE JS -->
-<script src="assets/plugins/datatable/js/jquery.dataTables.min.js"></script>
-<script src="assets/plugins/datatable/js/dataTables.bootstrap5.js"></script>
-<script src="assets/plugins/datatable/js/dataTables.buttons.min.js"></script>
-<script src="assets/plugins/datatable/js/buttons.bootstrap5.min.js"></script>
-<script src="assets/plugins/datatable/js/jszip.min.js"></script>
-<script src="assets/plugins/datatable/pdfmake/pdfmake.min.js"></script>
-<script src="assets/plugins/datatable/pdfmake/vfs_fonts.js"></script>
-<script src="assets/plugins/datatable/js/buttons.html5.min.js"></script>
-<script src="assets/plugins/datatable/js/buttons.print.min.js"></script>
-<script src="assets/plugins/datatable/js/buttons.colVis.min.js"></script>
-<script src="assets/plugins/datatable/dataTables.responsive.min.js"></script>
-<script src="assets/plugins/datatable/responsive.bootstrap5.min.js"></script>
-<script src="assets/js/table-data.js"></script>
-<script src="assets/js/select2.js"></script>

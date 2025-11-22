@@ -1,350 +1,342 @@
 <?php
+
+include("connection.php");
 include('demo.php');
-include('hhh.php');
-include('connection.php');
-require 'vendor/autoload.php';
+include('hhh.php'); // Assumed to contain necessary header HTML
 
-use Cloudinary\Cloudinary;
+// Default image path (if DB fields are null)
+$default_img_path = 'favicon_1.png';
 
-$cloudinary = new Cloudinary([
-    'cloud' => [
-        'cloud_name' => 'do3hihcwa',
-        'api_key' => '684953537186227',
-        'api_secret' => 'KlMn8Q-QtRfVcVTXBomtZC2U1Og'
-    ]
-]);
+// --- Utility Functions (Only needed for initial data fetch) ---
+function timeStringToSeconds($timeString)
+{
+ $parts = explode(':', $timeString);
+ $parts = array_reverse($parts);
 
+ $seconds = 0;
+ if (isset($parts[0]))
+  $seconds += (int) $parts[0];
+ if (isset($parts[1]))
+  $seconds += (int) $parts[1] * 60;
+ if (isset($parts[2]))
+  $seconds += (int) $parts[2] * 3600;
+
+ return $seconds;
+}
+
+// --- GET ID AND FETCH SONG DATA (Pre-populate form) ---
 $sid = $_GET['sid'] ?? 0;
 if (!$sid) {
-    echo "<script>alert('Invalid song ID'); window.location.href='view_songs.php';</script>";
-    exit;
+ echo "<script>alert('Invalid song ID'); window.location.href='view_songs.php';</script>";
+ exit;
 }
 
 $songQuery = mysqli_query($con, "SELECT * FROM song WHERE sid = '$sid'");
 $song = mysqli_fetch_assoc($songQuery);
-
-$artistOptions = [];
-$genreOptions = [];
-
-$artistQuery = mysqli_query($con, "SELECT arid, name FROM artist ORDER BY name ASC");
-while ($row = mysqli_fetch_assoc($artistQuery)) {
-    $artistOptions[] = $row;
+if (!$song) {
+ echo "<script>alert('Song not found'); window.location.href='view_songs.php';</script>";
+ exit;
 }
 
-$genreQuery = mysqli_query($con, "SELECT gid, name FROM genre ORDER BY name ASC");
-while ($row = mysqli_fetch_assoc($genreQuery)) {
-    $genreOptions[] = $row;
-}
+$displayDurationSeconds = timeStringToSeconds($song['length']);
 
+
+// --- API DATA FETCHING (For Dropdowns) ---
+$genreApiUrl = "http://localhost/SIngIT/flutter_crud/getGenres.php";
+$artistApiUrl = "http://localhost/SIngIT/flutter_crud/getArtists.php";
+$languageApiUrl = "http://localhost/SIngIT/flutter_crud/getLanguage.php";
+
+$genreOptions = json_decode(@file_get_contents($genreApiUrl) ?: '[]', true);
+$artistOptions = json_decode(@file_get_contents($artistApiUrl) ?: '[]', true);
+$languageOptions = json_decode(@file_get_contents($languageApiUrl) ?: '[]', true);
+
+
+// --- MAPPING FETCHING (Using direct DB queries to pre-select dropdowns) ---
 $selectedArtists = [];
 $selectedGenres = [];
+$selectedLanguages = [];
 
 $artistMap = mysqli_query($con, "SELECT artist_id FROM artist_song WHERE song_id = '$sid'");
 while ($row = mysqli_fetch_assoc($artistMap)) {
-    $selectedArtists[] = $row['artist_id'];
+ $selectedArtists[] = $row['artist_id'];
 }
 
 $genreMap = mysqli_query($con, "SELECT genre_id FROM genre_song WHERE song_id = '$sid'");
 while ($row = mysqli_fetch_assoc($genreMap)) {
-    $selectedGenres[] = $row['genre_id'];
+ $selectedGenres[] = $row['genre_id'];
 }
 
-// time ne 00:02:04 -> 204 kare che
-function timeStringToSeconds($timeString)
-{
-    $parts = explode(':', $timeString);
-    $parts = array_reverse($parts); // Handle MM:SS or HH:MM:SS
-
-    $seconds = 0;
-    if (isset($parts[0]))
-        $seconds += (int) $parts[0];         // Seconds
-    if (isset($parts[1]))
-        $seconds += (int) $parts[1] * 60;     // Minutes
-    if (isset($parts[2]))
-        $seconds += (int) $parts[2] * 3600;   // Hours
-
-    return $seconds;
-}
-
-function formatDuration($seconds)
-{
-    $hours = floor($seconds / 3600);
-    $minutes = floor(($seconds % 3600) / 60);
-    $secs = $seconds % 60;
-    return sprintf('%02d:%02d:%02d', $hours, $minutes, $secs);
-}
-
-// ✅ Final usage
-$seconds = timeStringToSeconds($song['length']);       // Converts "02:04" → 124
-$displayTime = formatDuration($seconds);                // Converts 124 → "00:02:04"
-
-$seconds = timeStringToSeconds($song['length']);
-$displayTime = formatDuration($seconds);
-// atlu
-
-if (isset($_POST["update"])) {
-    $name = trim($_POST["trackName"]);
-    $album = trim($_POST["albumName"]);
-    $rawDuration = $_POST["duration"] ?? 0; // e.g. "65"
-    $length = formatDuration((int) $rawDuration); // Converts to "00:01:05"
-    $lyrics = $_POST["syncedLyrics"] ?? '';
-    $imageUrl = $_POST["albumImageUrl"] ?? $song['image'];
-    $audioTmp = $_FILES["audio_v"]["tmp_name"] ?? '';
-    $instTmp = $_FILES["audio_i"]["tmp_name"] ?? '';
-    $manualTmp = $_FILES["manualImage"]["tmp_name"] ?? '';
-
-    try {
-        if ($audioTmp) {
-            $uploadResult = $cloudinary->uploadApi()->upload($audioTmp, ['resource_type' => 'video']);
-            $vocalUrl = $uploadResult['secure_url'];
-        } else {
-            $vocalUrl = $song['vocal'];
-        }
-
-        if ($instTmp) {
-            $uploadResult = $cloudinary->uploadApi()->upload($instTmp, ['resource_type' => 'video']);
-            $instrumentalUrl = $uploadResult['secure_url'];
-        } else {
-            $instrumentalUrl = $song['instrumental'];
-        }
-
-        if ($manualTmp) {
-            $imgUpload = $cloudinary->uploadApi()->upload($manualTmp);
-            $imageUrl = $imgUpload['secure_url'];
-        }
-
-        $qry = "UPDATE song SET name=?, image=?, length=?, lyrics=?, album=?, instrumental=?, vocal=? WHERE sid=?";
-        $stmt = $con->prepare($qry);
-        $stmt->bind_param("sssssssi", $name, $imageUrl, $length, $lyrics, $album, $instrumentalUrl, $vocalUrl, $sid);
-
-        if ($stmt->execute()) {
-            mysqli_query($con, "DELETE FROM artist_song WHERE song_id = '$sid'");
-            mysqli_query($con, "DELETE FROM genre_song WHERE song_id = '$sid'");
-
-            if (!empty($_POST['artistId'])) {
-                foreach ($_POST['artistId'] as $artistId) {
-                    mysqli_query($con, "INSERT INTO artist_song (artist_id, song_id) VALUES ('$artistId', '$sid')");
-                }
-            }
-
-            if (!empty($_POST['genreId'])) {
-                foreach ($_POST['genreId'] as $genreId) {
-                    mysqli_query($con, "INSERT INTO genre_song (genre_id, song_id) VALUES ('$genreId', '$sid')");
-                }
-            }
-
-            echo "<script>alert('✅ Song Updated Successfully'); window.location.href='view_songs.php';</script>";
-        } else {
-            echo "<script>alert('❌ Update failed: " . $stmt->error . "');</script>";
-        }
-
-        $stmt->close();
-    } catch (Exception $e) {
-        echo "<script>alert('❌ Error: " . $e->getMessage() . "');</script>";
-    }
+$languageMap = mysqli_query($con, "SELECT language_id FROM language_song WHERE song_id = '$sid'");
+while ($row = mysqli_fetch_assoc($languageMap)) {
+ $selectedLanguages[] = $row['language_id'];
 }
 ?>
 
-
 <style>
-    #custom-button_v,
-    #custom-button_i,
-    #custom-button_in {
-        padding: 10px;
-        color: white;
-        background-color: #8371fd;
-        border: none;
-        border-radius: 10px;
-        cursor: pointer;
-    }
+/* --- CUSTOM STYLES (FROM ADD_SONG) --- */
+#custom-button_vocal,
+#custom-button_i,
+#custom-button_in,
+#custom-button_poster {
+    padding: 10px;
+    color: white;
+    background: linear-gradient(135deg, #6259ca, #ff6ec4);
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+}
 
-    #custom-button_v:hover,
-    #custom-button_i:hover,
-    #custom-button_in:hover {
-        background-color: #9080f4;
-    }
+#custom-button_vocal:hover,
+#custom-button_i:hover,
+#custom-button_in:hover,
+#custom-button_poster:hover {
+    background-color: #9080f4;
+}
 
-    #custom-text_v,
-    #custom-text_i,
-    #custom-text_in {
-        margin-left: 10px;
-        font-family: sans-serif;
-        color: #aaa;
-    }
+#custom-text_vocal,
+#custom-text_i,
+#custom-text_in,
+#custom-text_poster {
+    margin-left: 10px;
+    font-family: sans-serif;
+    color: #aaa;
+}
 
-    form {
-        background-color: white;
-        border-radius: 20px;
-    }
+form {
+    background-color: white;
+    border-radius: 20px;
+}
 
-    h1 {
-        border-radius: 10px;
-    }
+h1 {
+    border-radius: 10px;
+}
 
-    .form-control {
-        border-radius: 10px;
-        /* font-size:19px; */
-        height: 40px;
-        color: black;
+.form-control,
+.input {
+    border-radius: 10px;
+    height: 40px;
+    color: black;
+}
 
-    }
+#gradient {
+    background: linear-gradient(135deg, #6259ca, #ff6ec4);
+}
 
-    #name {
-        border-color: #edeef3;
-        background-color: white;
-    }
+.btn-lg {
+    padding: 0rem 3rem;
+    font-size: 0.875rem;
+    border-radius: 10px;
+}
 
-    #custom-button {
-        padding: 10px;
-        color: white;
-        background-color: #8371fd;
-        border: none;
-        border-radius: 10px;
-        cursor: pointer;
+.img-preview {
+    display: none;
+    margin-top: 10px;
+    border-radius: 10px;
+    box-shadow: 0 0 10px #ccc;
+}
 
-    }
+.error {
+    color: red;
+    font-size: 14px;
+    margin-top: 5px;
+    display: none;
+}
 
-    #custom-button:hover {
-        background-color: #9080f4;
-    }
+/* Custom Dropdown Styles */
+#custom-dropdown-header-genre,
+#custom-dropdown-header-artist,
+#custom-dropdown-header-language {
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    padding: 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
 
-    #custom-text {
-        margin-left: 10px;
-        font-family: sans-serif;
-        color: #aaa;
-    }
 
-    #custom-button {
-        padding: 10px;
-        color: white;
-        background-color: #8371fd;
-        border: none;
-        border-radius: 10px;
-        cursor: pointer;
+.custom-dropdown-list-style {
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-top: none;
+    max-height: 200px;
+    overflow-y: auto;
+    border-radius: 0 0 8px 8px;
+    padding: 10px;
+    display: none;
+}
 
-    }
+.checkbox-item {
+    display: flex;
+    align-items: center;
+    padding: 5px 0;
+}
 
-    #custom-button:hover {
-        background-color: #9080f4;
-    }
+.checkbox-item input[type="checkbox"] {
+    margin-right: 10px;
+    width: 18px;
+    height: 18px;
+    /* Apply custom color to checkbox */
+    accent-color: #AA62C7;
+}
 
-    #custom-text {
-        margin-left: 10px;
-        font-family: sans-serif;
-        color: #aaa;
-    }
+/* 🖼️ IMAGE DIMENSION FIX: Set universal styles for all images */
+.dropdown-img {
+    margin-right: 10px;
+    border-radius: 3px;
+    object-fit: cover;
+}
 
-    .btn-lg {
-        padding: 0rem 3rem;
-        font-size: 0.875rem;
-        border-radius: 10px;
-    }
+/* 👤 Artist Image: Vertical Rectangle (taller) */
+.artist-img {
+    height: 40px;
+    width: 30px;
+}
 
-    .setimg {
-        display: flex;
-        align-items: center;
-        justify-content: center
-    }
+/* 🎵 Genre / 🌐 Language Images: Horizontal Rectangle (wider) */
+.genre-lang-img {
+    height: 30px;
+    width: 40px;
+}
 
-    .tb {
-        /* font-size: 20px; */
-        padding-left: 10px;
-    }
-
-    .img-preview {
-        display: none;
-        margin-top: 10px;
-        border-radius: 10px;
-        box-shadow: 0 0 10px #ccc;
-    }
-
-    .error {
-        color: red;
-        font-size: 14px;
-        margin-top: 5px;
-        display: block;
-    }
+.selection-summary {
+    font-size: 14px;
+    color: #5b478d;
+}
 </style>
+
 
 <div class="page-header">
     <div>
-        <h2 class="main-content-title tx-24 mg-b-5">Add Songs</h2>
+        <h2 class="main-content-title tx-24 mg-b-5">Edit Song</h2>
         <ol class="breadcrumb">
             <li class="breadcrumb-item"><a href="home.php">Home</a></li>
-            <li class="breadcrumb-item active" aria-current="page">Add Songs</li>
+            <li class="breadcrumb-item active" aria-current="page">Edit Song</li>
         </ol>
     </div>
-
 </div>
 
 <div class="col-md-6 m-auto d-block">
-    <form method="POST" action="" enctype="multipart/form-data" id="form1"
-        class="mb-4 mt-5 font-weight-bold border bg-white p-5 shadow">
-        <h1 class="text-center text-light font-weight-bold bg-primary p-3 shadow">
-            <strong>Edit Song</strong>
+    <form method="POST" action="http://localhost/SIngIT/flutter_crud/editSong.php" enctype="multipart/form-data"    
+        id="form1" class="mb-4 mt-5 font-weight-bold border bg-white p-5 shadow">
+
+        <input type="hidden" name="sid" value="<?= $sid ?>">
+
+        <h1 class="text-center text-light font-weight-bold p-3" id="gradient">
+            <strong>Edit Song (ID: <?= $sid ?>)</strong>
         </h1>
         <br />
 
         <div class="form-group">
             <h5>Track Name:</h5>
-            <input type="text" name="trackName" id="trackName" class="form-control"
+            <input type="text" name="trackName" id="trackName" class="form-control input"    
                 value="<?php echo htmlspecialchars($song['name']); ?>">
             <span class="error" id="trackNameError"></span>
         </div>
 
         <div class="form-group">
-            <h5>Select Genres:</h5>
-            <select name="genreId[]" class="form-control" multiple>
-                <?php foreach ($genreOptions as $genre): ?>
-                    <option value="<?php echo $genre['gid']; ?>" <?php echo in_array($genre['gid'], $selectedGenres) ? 'selected' : ''; ?>>
-                        <?php echo htmlspecialchars($genre['name']); ?>
-                    </option>
-                <?php endforeach; ?>
-            </select>
-            <span class="error" id="genreError"></span>
+            <h5>Genre(s):</h5>
+            <input type="hidden" name="genreIdList" id="selected_genre_id_list"    
+                value="<?= implode(',', $selectedGenres) ?>">
 
+            <div id="custom-dropdown-header-genre">
+                <span id="selectionSummaryGenre"><?= count($selectedGenres) ?> Selected</span>
+                <i class="uil uil-angle-down"></i>
+            </div>
+            <div id="custom-dropdown-list-genre" class="custom-dropdown-list-style">
+                <?php foreach ($genreOptions as $genre):
+     $image_src = htmlspecialchars($genre['image'] ?? $default_img_path);
+     $checked = in_array($genre['gid'], $selectedGenres) ? 'checked' : '';
+     ?>
+                <label class="checkbox-item">
+                    <input type="checkbox" value="<?= $genre['gid'] ?>"    
+                        data-name="<?= htmlspecialchars($genre['name']) ?>" class="genre-checkbox" <?= $checked ?>>
+                    <img src="<?= $image_src ?>" alt="" title="<?= htmlspecialchars($genre['name']) ?>"    
+                        class="dropdown-img genre-lang-img">
+                    <span><?= htmlspecialchars($genre['name']) ?></span>
+                </label>
+                <?php endforeach; ?>
+            </div>
+            <span class="error" id="genreError"></span>
         </div>
 
         <div class="form-group">
-            <h5>Select Artists:</h5>
-            <select name="artistId[]" id="artistId" class="form-control" multiple>
-                <?php foreach ($artistOptions as $artist): ?>
-                    <option value="<?php echo $artist['arid']; ?>" <?php echo in_array($artist['arid'], $selectedArtists) ? 'selected' : ''; ?>>
-                        <?php echo htmlspecialchars($artist['name']); ?>
-                    </option>
-                <?php endforeach; ?>
-            </select>
-            <span class="error" id="artistError"></span>
+            <h5>Artist(s):</h5>
+            <input type="hidden" name="artistIdList" id="selected_artist_id_list"    
+                value="<?= implode(',', $selectedArtists) ?>">
 
+            <div id="custom-dropdown-header-artist">
+                <span id="selectionSummaryArtist"><?= count($selectedArtists) ?> Selected</span>
+                <i class="uil uil-angle-down"></i>
+            </div>
+            <div id="custom-dropdown-list-artist" class="custom-dropdown-list-style">
+                <?php foreach ($artistOptions as $artist):
+     $image_src = htmlspecialchars($artist['photo'] ?? $default_img_path);
+     $checked = in_array($artist['arid'], $selectedArtists) ? 'checked' : '';
+     ?>
+                <label class="checkbox-item">
+                    <input type="checkbox" value="<?= $artist['arid'] ?>"    
+                        data-name="<?= htmlspecialchars($artist['name']) ?>" class="artist-checkbox" <?= $checked ?>>
+                    <img src="<?= $image_src ?>" alt="" title="<?= htmlspecialchars($artist['name']) ?>"    
+                        class="dropdown-img artist-img">
+                    <span><?= htmlspecialchars($artist['name']) ?></span>
+                </label>
+                <?php endforeach; ?>
+            </div>
+            <span class="error" id="artistError"></span>
         </div>
 
-        <!-- aa junu -->
+        <div class="form-group">
+            <h5>Language(s):</h5>
+            <input type="hidden" name="languageIdList" id="selected_language_id_list"    
+                value="<?= implode(',', $selectedLanguages) ?>">
+
+            <div id="custom-dropdown-header-language">
+                <span id="selectionSummaryLanguage"><?= count($selectedLanguages) ?> Selected</span>
+                <i class="uil u1il-angle-down"></i>
+            </div>
+            <div id="custom-dropdown-list-language" class="custom-dropdown-list-style">
+                <?php foreach ($languageOptions as $language):
+     $image_src = htmlspecialchars($language['image'] ?? $default_img_path);
+     $checked = in_array($language['lid'], $selectedLanguages) ? 'checked' : '';
+     ?>
+                <label class="checkbox-item">
+                    <input type="checkbox" value="<?= $language['lid'] ?>"    
+                        data-name="<?= htmlspecialchars($language['name']) ?>" class="language-checkbox"    
+                        <?= $checked ?>>
+                    <img src="<?= $image_src ?>" alt="" title="<?= htmlspecialchars($language['name']) ?>"    
+                        class="dropdown-img genre-lang-img">
+                    <span><?= htmlspecialchars($language['name']) ?></span>
+                </label>
+                <?php endforeach; ?>
+            </div>
+            <span class="error" id="languageError"></span>
+        </div>
 
         <center>
-            <button type="button" class="btn btn-outline-success mt-2 btn-lg input"
+            <button type="button" class="btn btn-outline-success mt-2 btn-lg input"    
                 onclick="fetchLyrics()">Auto-Fill</button>
         </center>
 
-
-
         <div class="form-group">
             <h5>Album Name:</h5>
-            <input type="text" name="albumName" id="albumName" class="form-control"
+            <input type="text" name="albumName" id="albumName" class="form-control input"    
                 value="<?php echo htmlspecialchars($song['album']); ?>">
             <span class="error" id="albumError"></span>
         </div>
 
         <div class="form-group">
             <h5>Duration (seconds):</h5>
-            <input type="text" name="duration" id="duration" class="form-control"
-                value="<?= timeStringToSeconds($song['length']) ?>">
+            <input type="text" name="duration" id="duration" class="form-control input"    
+                value="<?= $displayDurationSeconds ?>">
             <span class="error" id="durationError"></span>
         </div>
 
         <div class="form-group">
             <h5>Lyrics:</h5>
-            <textarea name="syncedLyrics" id="syncedLyrics" rows="4"
-                class="form-control input"><?= htmlspecialchars($song['lyrics']) ?></textarea>
+            <textarea name="syncedLyrics" id="syncedLyrics" rows="4" class="form-control input"    
+                style="padding-top: 10px;"><?= htmlspecialchars($song['lyrics']) ?></textarea>
             <span class="error" id="lyricsError"></span>
         </div>
 
@@ -352,217 +344,403 @@ if (isset($_POST["update"])) {
             <h5>Upload Album Image (Manual):</h5>
             <input type="file" id="manualImage" name="manualImage" accept="image/*" hidden="hidden" />
             <button type="button" id="custom-button_in">CHOOSE A FILE</button>
-            <span id="custom-text_in">No file chosen, yet.</span>
+            <span id="custom-text_in">Change file?</span>
+            <span class="error" id="imageError"></span>
             <br>
         </div>
 
         <div class="form-group">
-            <!-- <h5>Album Image URL</h5> -->
-            <input type="text" name="albumImageUrl" id="albumImageUrl" class="form-control" hidden
+            <input type="hidden" name="albumImageUrl" id="albumImageUrl"    
                 value="<?php echo htmlspecialchars($song['image']); ?>">
-            <img id="albumImagePreview" src="<?php echo htmlspecialchars($song['image']); ?>"
+
+            <img id="albumImagePreview" src="<?php echo htmlspecialchars($song['image']); ?>"    
                 style="height:80px; width:80px; object-fit:cover; border-radius:8px; margin-top:10px; box-shadow:0 0 6px rgba(0,0,0,0.2);">
         </div>
 
-        <h5>Upload Vocal Audio:</h5>
-        <input type="file" id="audio_v" name="audio_v" accept="audio/*" hidden="hidden" />
-        <button type="button" id="custom-button_v">CHOOSE A FILE</button>
-        <span id="custom-text_v">No file chosen, yet.</span>
-        <span class="error" id="audioVError"></span>
+        <div class="form-group">
+            <h5>Upload Poster Image:</h5>
+            <input type="file" id="posterImage" name="posterImage" accept="image/*" hidden="hidden" />
+            <button type="button" id="custom-button_poster">CHOOSE A FILE</button>
+            <span id="custom-text_poster">Change file?</span>
+            <span class="error" id="posterImageError"></span>
+        </div>
+
+        <div class="form-group">
+            <?php if (!empty($song['poster'])): ?>
+            <img id="posterImagePreview" src="<?= htmlspecialchars($song['poster']) ?>"        
+                style="height:80px; width:80px; object-fit:cover; border-radius:8px; margin-top:10px; box-shadow:0 0 6px rgba(0,0,0,0.2);">
+            <?php endif; ?>
+        </div>
+
+        <h5 class="mt-3">Upload Vocal Audio:</h5>
+        <input type="file" id="audio_vocal" name="audio_vocal" accept="audio/*" hidden="hidden" />
+        <button type="button" id="custom-button_vocal">CHOOSE A FILE</button>
+        <span id="custom-text_vocal">Change file?</span>
+        <span class="error" id="audioVocalError"></span>
 
         <audio controls class="mt-2" style="height:30px;">
+
+               
             <source src="<?= $song['vocal'] ?>" type="audio/mpeg">
+
+               
         </audio>
         <br />
 
-        <h5>Upload Instrumental Audio:</h5>
+        <h5 class="mt-3">Upload Instrumental Audio:</h5>
         <input type="file" id="audio_i" name="audio_i" accept="audio/*" hidden="hidden" />
         <button type="button" id="custom-button_i">CHOOSE A FILE</button>
-        <span id="custom-text_i">No file chosen, yet.</span>
+        <span id="custom-text_i">Change file?</span>
         <span class="error" id="audioIError"></span>
         <audio controls class="mt-2" style="height:30px;">
+
+               
             <source src="<?= $song['instrumental'] ?>" type="audio/mpeg">
+
+               
         </audio>
         <br />
         <br />
 
         <center>
             <button type="submit" name="update" class="btn btn-outline-primary btn-lg input">Update</button>
-            <!-- &nbsp;&nbsp;&nbsp;
-            <button type="submit" name="view" class="btn btn-outline-danger btn-lg input">View</button> -->
         </center>
     </form>
 </div>
 
+<script src="https://unpkg.com/sweetalert/dist/sweetalert.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
 <script>
-    async function fetchLyrics() {
-        const artistSelect = document.getElementById("artistId");
-        const selectedArtist = artistSelect.selectedOptions[0]?.text || "";
-        const track = document.getElementById("trackName").value;
+// --- SweetAlert Helper Functions (Same as Insert form) ---
 
-        if (!selectedArtist || !track) {
-            alert("Please select at least one artist and enter track name.");
-            return;
-        }
+// FIX: Function to force scroll restoration
+function restoreScroll() {
+    // Ensure the SweetAlert library doesn't leave the scroll lock on the body/html element
+    if (document.body.classList.contains('swal-open')) {
+        document.body.classList.remove('swal-open');
+    }
+    document.body.style.overflow = '';
+    document.documentElement.style.overflowY = 'auto';
+}
 
-        try {
-            const res = await fetch(
-                `lyrics_fetch.php?artist=${encodeURIComponent(selectedArtist)}&track=${encodeURIComponent(track)}`
-            );
-            const data = await res.json();
+function showSuccessAlert(msg, callback = null) {
+    swal({
+        title: 'Well done!',
+        text: msg,
+        type: 'success',
+        confirmButtonColor: '#57a94f',
+        onClose: restoreScroll,
+        allowOutsideClick: true,
+        showConfirmButton: true
+    }, callback);
+}
 
-            if (data.status === "found") {
-                document.getElementById("albumName").value = data.albumName;
-                document.getElementById("duration").value = data.duration;
-                document.getElementById("syncedLyrics").value = data.syncedLyrics;
-                document.getElementById("albumImageUrl").value = data.albumImage;
+function showErrorAlert(msg, callback = null) {
+    swal({
+        title: 'Oops!',
+        text: msg,
+        type: 'error',
+        confirmButtonColor: '#ff0000',
+        onClose: restoreScroll,
+        allowOutsideClick: true,
+        showConfirmButton: true
+    }, callback);
+}
 
-                const preview = document.getElementById("albumImagePreview");
-                preview.src = data.albumImage;
-                preview.style.display = "block";
-            } else {
-                document.getElementById("albumImagePreview").style.display = "none";
-                alert("❌ No data found. Please enter manually.");
+// --- Custom Multi-Select Logic (Same as before) ---
+
+function setupCustomDropdown(headerId, listId, checkboxClass, summaryId, hiddenInputId, errorId) {
+    const dropdownHeader = document.getElementById(headerId);
+    const dropdownList = document.getElementById(listId);
+    const selectionSummary = document.getElementById(summaryId);
+    const hiddenInput = document.getElementById(hiddenInputId);
+    const selectionError = document.getElementById(errorId);
+
+    let selectedIds = hiddenInput.value.split(',').filter(id => id.trim() !== '');
+    selectionSummary.textContent = `${selectedIds.length} Selected`;
+
+    dropdownHeader.addEventListener('click', () => {
+        $(dropdownList).slideToggle(200);
+        selectionError.style.display = 'none';
+    });
+
+    $(dropdownList).on('change', `.${checkboxClass}`, function() {
+        const id = this.value;
+
+        if (this.checked) {
+            if (selectedIds.indexOf(id) === -1) {
+                selectedIds.push(id);
             }
-        } catch (err) {
-            alert("❌ Error fetching lyrics: " + err.message);
+        } else {
+            selectedIds = selectedIds.filter(s => s !== id);
         }
+
+        hiddenInput.value = selectedIds.join(',');
+        selectionSummary.textContent = `${selectedIds.length} Selected`;
+        if (selectedIds.length > 0) selectionError.style.display = 'none';
+    });
+
+    return hiddenInput;
+}
+
+const genreInput = setupCustomDropdown('custom-dropdown-header-genre', 'custom-dropdown-list-genre', 'genre-checkbox',
+    'selectionSummaryGenre', 'selected_genre_id_list', 'genreError');
+const artistInput = setupCustomDropdown('custom-dropdown-header-artist', 'custom-dropdown-list-artist',
+    'artist-checkbox', 'selectionSummaryArtist', 'selected_artist_id_list', 'artistError');
+const languageInput = setupCustomDropdown('custom-dropdown-header-language', 'custom-dropdown-list-language',
+    'language-checkbox', 'selectionSummaryLanguage', 'selected_language_id_list', 'languageError');
+
+
+// --- Custom File Button Logic (Same as before) ---
+
+const customFileSetup = (fileId, buttonId, textId, previewId = null) => {
+    const realFileBtn = document.getElementById(fileId);
+    const customBtn = document.getElementById(buttonId);
+    const customTxt = document.getElementById(textId);
+    const previewEl = previewId ? document.getElementById(previewId) : null;
+
+    const initialText = customTxt.innerHTML;
+
+    customBtn.addEventListener("click", function() {
+        realFileBtn.click();
+    });
+
+    realFileBtn.addEventListener("change", function() {
+        if (realFileBtn.files.length > 0) {
+            customTxt.innerHTML = realFileBtn.files[0].name;
+            if (previewEl && fileId !== 'audio_vocal' && fileId !== 'audio_i') {
+                previewEl.src = URL.createObjectURL(realFileBtn.files[0]);
+                previewEl.style.display = "block";
+            }
+        } else {
+            customTxt.innerHTML = initialText;
+
+            if (fileId === 'manualImage') {
+                const existingUrl = document.getElementById('albumImageUrl').value;
+                document.getElementById("albumImagePreview").src = existingUrl;
+            } else if (fileId === 'posterImage') {
+                const existingUrl = '<?= $song['poster'] ?>';
+                document.getElementById("posterImagePreview").src = existingUrl;
+            }
+        }
+    });
+};
+
+customFileSetup("audio_vocal", "custom-button_vocal", "custom-text_vocal");
+customFileSetup("audio_i", "custom-button_i", "custom-text_i");
+customFileSetup("manualImage", "custom-button_in", "custom-text_in", "albumImagePreview");
+customFileSetup("posterImage", "custom-button_poster", "custom-text_poster", "posterImagePreview");
+
+// Auto-Fill Function (Calls external API: lyrics_fetch.php)
+async function fetchLyrics() {
+    const artistInput = document.getElementById("selected_artist_id_list");
+    const track = document.getElementById("trackName").value;
+
+    // 1. Pre-API Validation using SweetAlert
+    if (artistInput.value.trim().length === 0 || !track) {
+        showErrorAlert("Please select at least one artist and enter track name before using Auto-Fill.");
+        return;
     }
 
-    // Manual image preview on file select
-    document.getElementById("manualImage").addEventListener("change", function (event) {
-        const file = event.target.files[0];
-        if (file) {
-            const preview = document.getElementById("manualImagePreview");
-            preview.src = URL.createObjectURL(file);
+    const artistIds = artistInput.value.split(',');
+    const firstArtistId = artistIds[0];
+    const artistElement = document.querySelector(`.artist-checkbox[value="${firstArtistId}"]`);
+    const selectedArtist = artistElement ? artistElement.dataset.name.trim() : '';
+
+    if (!selectedArtist) {
+        showErrorAlert("Could not determine artist name for auto-fill.");
+        return;
+    }
+
+    try {
+        const res = await fetch(
+            `lyrics_fetch.php?artist=${encodeURIComponent(selectedArtist)}&track=${encodeURIComponent(track)}`
+        );
+        const data = await res.json();
+
+        if (data.status === "found") {
+            // Set values, using || '' to ensure null values don't break the code
+            document.getElementById("albumName").value = data.albumName || '';
+            document.getElementById("duration").value = data.duration || '';
+
+            // ✅ Set Lyrics
+            document.getElementById("syncedLyrics").value = data.syncedLyrics || '';
+
+            document.getElementById("albumImageUrl").value = data.albumImage || '';
+
+            const preview = document.getElementById("albumImagePreview");
+            preview.src = data.albumImage;
             preview.style.display = "block";
-        }
-    });
 
-    const realFileBtnV = document.getElementById("audio_v");
-    const customBtnV = document.getElementById("custom-button_v");
-    const customTxtV = document.getElementById("custom-text_v");
+            // Manual Upload section છુપાવો
+            const manualUploadSection = document.getElementById("manualImageUpload");
+            if (manualUploadSection) {
+                manualUploadSection.style.display = "none";
+            }
 
-    customBtnV.addEventListener("click", function () {
-        realFileBtnV.click();
-    });
+            showSuccessAlert("Track details auto-filled successfully!");
 
-    realFileBtnV.addEventListener("change", function () {
-        if (realFileBtnV.files.length > 0) {
-            customTxtV.innerHTML = realFileBtnV.files[0].name;
         } else {
-            customTxtV.innerHTML = "No file chosen, yet.";
+            // If Auto-fill fails, ensure manual image upload section is visible
+            document.getElementById("albumImagePreview").style.display = "block";
+
+            // Manual Upload section બતાવો
+            const manualUploadSection = document.getElementById("manualImageUpload");
+            if (manualUploadSection) {
+                manualUploadSection.style.display = "block";
+            }
+
+            document.getElementById("albumImageUrl").value = "";
+
+            showErrorAlert("No song data found! Please insert song details manually.");
         }
-    });
+    } catch (err) {
+        showErrorAlert("❌ Error fetching lyrics: " + err.message);
+    }
+}
 
-    const realFileBtnI = document.getElementById("audio_i");
-    const customBtnI = document.getElementById("custom-button_i");
-    const customTxtI = document.getElementById("custom-text_i");
 
-    customBtnI.addEventListener("click", function () {
-        realFileBtnI.click();
-    });
+// --- Form Submission Logic (Intercepts form submit and uses native POST) ---
+document.getElementById("form1").addEventListener("submit", function(e) {
+    // ⚠️ IMPORTANT: We remove e.preventDefault() here so the form submits normally if valid.
+    let valid = true;
 
-    realFileBtnI.addEventListener("change", function () {
-        if (realFileBtnI.files.length > 0) {
-            customTxtI.innerHTML = realFileBtnI.files[0].name;
-        } else {
-            customTxtI.innerHTML = "No file chosen, yet.";
-        }
-    });
+    // --- Element Definitions ---
+    const trackName = document.getElementById("trackName");
+    const albumName = document.getElementById("albumName");
+    const duration = document.getElementById("duration");
+    const lyrics = document.getElementById("syncedLyrics");
+    const audioVocal = document.getElementById("audio_vocal");
+    const audioI = document.getElementById("audio_i");
+    const manualImage = document.getElementById("manualImage");
+    const posterImage = document.getElementById("posterImage");
+    const albumImageUrl = document.getElementById("albumImageUrl");
 
-    const realFileBtnImg = document.getElementById("manualImage");
-    const customBtnImg = document.getElementById("custom-button_in");
-    const customTxtImg = document.getElementById("custom-text_in");
+    // Existing URL variables injected via PHP
+    const existingVocal = '<?= $song['vocal'] ?>';
+    const existingInstrumental = '<?= $song['instrumental'] ?>';
+    const existingPoster = '<?= $song['poster'] ?>';
 
-    customBtnImg.addEventListener("click", function () {
-        realFileBtnImg.click();
-    });
+    const trackNameError = document.getElementById("trackNameError");
+    const genreError = document.getElementById("genreError");
+    const artistError = document.getElementById("artistError");
+    const languageError = document.getElementById("languageError");
+    const albumError = document.getElementById("albumError");
+    const durationError = document.getElementById("durationError");
+    const lyricsError = document.getElementById("lyricsError");
+    const imageError = document.getElementById("imageError");
+    const audioVocalError = document.getElementById("audioVocalError");
+    const audioIError = document.getElementById("audioIError");
+    const posterImageError = document.getElementById("posterImageError");
 
-    realFileBtnImg.addEventListener("change", function () {
-        if (realFileBtnImg.files.length > 0) {
-            customTxtImg.innerHTML = realFileBtnImg.files[0].name;
-        } else {
-            customTxtImg.innerHTML = "No file chosen, yet.";
-        }
-    });
-</script>
 
-<script>
-    document.getElementById("form1").addEventListener("submit", function (e) {
-        let valid = true;
+    // Clear previous errors
+    document.querySelectorAll(".error").forEach(el => el.textContent = "");
+    document.querySelectorAll(".error").forEach(el => el.style.display = 'none');
 
-        const trackName = document.getElementById("trackName");
-        const genreSelect = document.querySelector("select[name='genreId[]']");
-        const artistSelect = document.getElementById("artistId");
-        const albumName = document.getElementById("albumName");
-        const duration = document.getElementById("duration");
-        const syncedLyrics = document.getElementById("syncedLyrics");
-        const audioV = document.getElementById("audio_v");
-        const audioI = document.getElementById("audio_i");
-        const manualImage = document.getElementById("manualImage");
 
-        // Clear previous errors
-        document.querySelectorAll(".error").forEach(el => el.textContent = "");
+    // 1. Validate Track Name
+    if (trackName.value.trim() === "") {
+        trackNameError.textContent = "⚠️ Track name is required.";
+        trackNameError.style.display = 'block';
+        valid = false;
+    }
 
-        // Track name
-        if (trackName.value.trim() === "") {
-            document.getElementById("trackNameError").textContent = "⚠️ Track name is required.";
-            valid = false;
-        }
+    // 2. Validate Dropdowns
+    if (genreInput.value.trim() === "") {
+        genreError.textContent = "⚠️ Select at least one genre.";
+        genreError.style.display = 'block';
+        valid = false;
+    }
+    if (artistInput.value.trim() === "") {
+        artistError.textContent = "⚠️ Select at least one artist.";
+        artistError.style.display = 'block';
+        valid = false;
+    }
+    if (languageInput.value.trim() === "") {
+        languageError.textContent = "⚠️ Select at least one language.";
+        languageError.style.display = 'block';
+        valid = false;
+    }
 
-        // Genre selection
-        if ([...genreSelect.selectedOptions].length === 0) {
-            document.getElementById("genreError").textContent = "⚠️ Select at least one genre.";
-            valid = false;
-        }
 
-        // Artist selection
-        if ([...artistSelect.selectedOptions].length === 0) {
-            document.getElementById("artistError").textContent = "⚠️ Select at least one artist.";
-            valid = false;
-        }
+    // 3. Validate Album Name
+    if (albumName.value.trim() === "") {
+        albumError.textContent = "⚠️ Album name is required.";
+        albumError.style.display = 'block';
+        valid = false;
+    }
 
-        if (albumName.value.trim() === "") {
-            document.getElementById("albumError").textContent = "⚠️ Album name is required.";
-            valid = false;
-        }
+    // 4. Validate Duration
+    const durValue = duration.value.trim();
+    if (durValue === "" || isNaN(durValue) || parseInt(durValue) <= 0) {
+        durationError.textContent = "⚠️ Enter valid duration (in seconds).";
+        durationError.style.display = 'block';
+        valid = false;
+    }
 
-        // Duration
-        const durValue = duration.value.trim();
-        if (durValue === "") {
-            document.getElementById("durationError").textContent = "⚠️ Duration is required.";
-            valid = false;
-        } else {
-            const dur = parseInt(durValue);
-            if (isNaN(dur) || dur <= 0) {
-                document.getElementById("durationError").textContent = "⚠️ Duration must be a positive number.";
+    // 5. Validate Lyrics
+    if (lyrics.value.trim() === "") {
+        lyricsError.textContent = "⚠️ Lyrics are required.";
+        lyricsError.style.display = 'block';
+        valid = false;
+    }
+
+    // 6. 🖼️ ALBUM IMAGE: New file OR existing URL
+    if (albumImageUrl.value.trim() === "" && manualImage.files.length === 0) {
+        imageError.textContent = "⚠️ Album Image is required (must be auto-filled or uploaded manually).";
+        imageError.style.display = 'block';
+        valid = false;
+    }
+
+    // 7. 🖼️ POSTER IMAGE: New file OR existing URL (FIXED)
+    if (posterImage.files.length === 0 && existingPoster.trim() === '') {
+        posterImageError.textContent = "⚠️ Upload Poster Image is required.";
+        posterImageError.style.display = 'block';
+        valid = false;
+    }
+
+    // 8. VOCAL AUDIO: New file OR existing URL (FIXED)
+    if (audioVocal.files.length === 0 && existingVocal.trim() === '') {
+        audioVocalError.textContent = "⚠️ Upload vocal audio is required.";
+        audioVocalError.style.display = 'block';
+        valid = false;
+    }
+
+    // 9. INSTRUMENTAL AUDIO: New file OR existing URL (FIXED)
+    if (audioI.files.length === 0 && existingInstrumental.trim() === '') {
+        audioIError.textContent = "⚠️ Upload instrumental audio is required.";
+        audioIError.style.display = 'block';
+        valid = false;
+    }
+
+
+    // File Type Validation (Optional)
+    const validateFile = (input, allowedTypes, errorId, label) => {
+        if (input.files.length > 0) {
+            const type = input.files[0].type;
+            if (!allowedTypes.includes(type)) {
+                document.getElementById(errorId).textContent = `⚠️ Invalid ${label} format.`;
                 valid = false;
             }
         }
+    };
 
-        if (syncedLyrics.value.trim() === "") {
-            document.getElementById("lyricsError").textContent = "⚠️ Lyrics is required.";
-            valid = false;
-        }
+    validateFile(audioVocal, ['audio/mpeg', 'audio/mp3', 'audio/wav'], "audioVocalError", "vocal audio");
+    validateFile(audioI, ['audio/mpeg', 'audio/mp3', 'audio/wav'], "audioIError", "instrumental audio");
+    validateFile(manualImage, ['image/jpeg', 'image/png', 'image/webp'], "imageError", "album image");
+    validateFile(posterImage, ['image/jpeg', 'image/png', 'image/webp'], "posterImageError", "poster image");
 
-        // File validation helper
-        const validateFile = (input, allowedTypes, errorId, label) => {
-            if (input.files.length > 0) {
-                const type = input.files[0].type;
-                if (!allowedTypes.includes(type)) {
-                    document.getElementById(errorId).textContent = `⚠️ Invalid ${label} format.`;
-                    valid = false;
-                }
-            }
-        };
 
-        validateFile(audioV, ['audio/mpeg', 'audio/mp3', 'audio/wav'], "audioVError", "vocal audio");
-        validateFile(audioI, ['audio/mpeg', 'audio/mp3', 'audio/wav'], "audioIError", "instrumental audio");
-        validateFile(manualImage, ['image/jpeg', 'image/png', 'image/webp'], "imageError", "album image");
+    if (!valid) {
+        // If validation fails, prevent default form submission
+        e.preventDefault();
+        return;
+    }
 
-        if (!valid) e.preventDefault();
-    });
+    // If valid, the form submits normally to the PHP action URL.
+});
 </script>
 
 <?php include('fff.php'); ?>

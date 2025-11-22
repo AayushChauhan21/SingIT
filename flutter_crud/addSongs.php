@@ -57,13 +57,26 @@ if (isset($_POST["insert"])) {
 
     $lyrics = $_POST["syncedLyrics"];
     $imageUrl = $_POST["albumImageUrl"];
-    $audioTmp = $_FILES["audio_v"]["tmp_name"];
-    $instTmp = $_FILES["audio_i"]["tmp_name"];
-    $manualTmp = $_FILES["manualImage"]["tmp_name"];
+
+    // Vocal Audio ID: audio_vocal
+    $vocalAudioTmp = $_FILES["audio_vocal"]["tmp_name"] ?? '';
+    $instTmp = $_FILES["audio_i"]["tmp_name"] ?? '';
+    $manualTmp = $_FILES["manualImage"]["tmp_name"] ?? '';
+
+    // Poster Image
+    $posterTmp = $_FILES["posterImage"]["tmp_name"] ?? '';
+    $posterUrl = '';
 
     // Upload Vocal Audio
+    if (!$vocalAudioTmp) {
+        $_SESSION['status'] = 'error';
+        $_SESSION['message'] = 'Vocal audio file is missing.';
+        header("location:" . $baseUrl . "view_songs.php");
+        exit;
+    }
+
     try {
-        $uploadResult = $cloudinary->uploadApi()->upload($audioTmp, ['resource_type' => 'video']);
+        $uploadResult = $cloudinary->uploadApi()->upload($vocalAudioTmp, ['resource_type' => 'video']);
         $vocalUrl = $uploadResult['secure_url'];
     } catch (Exception $e) {
         echo "<script>alert('❌ Vocal upload failed: " . $e->getMessage() . "');</script>";
@@ -88,23 +101,41 @@ if (isset($_POST["insert"])) {
             $imgUpload = $cloudinary->uploadApi()->upload($manualTmp);
             $imageUrl = $imgUpload['secure_url'];
         } catch (Exception $e) {
-            echo "<script>alert('❌ Image upload failed: " . $e->getMessage() . "');</script>";
+            echo "<script>alert('❌ Album Image upload failed: " . $e->getMessage() . "');</script>";
             exit;
         }
     }
 
+    // Upload Poster Image (Required)
+    if ($posterTmp) {
+        try {
+            $posterUpload = $cloudinary->uploadApi()->upload($posterTmp);
+            $posterUrl = $posterUpload['secure_url'];
+        } catch (Exception $e) {
+            echo "<script>alert('❌ Poster Image upload failed: " . $e->getMessage() . "');</script>";
+            exit;
+        }
+    } else {
+        $_SESSION['status'] = 'error';
+        $_SESSION['message'] = 'Poster Image file is missing.';
+        header("location:" . $baseUrl . "view_songs.php");
+        exit;
+    }
+
+
     // Main Song Insert Query (Prepared Statement)
-    $qry = "INSERT INTO song (name, image, length, lyrics, album, instrumental, vocal)
-             VALUES (?, ?, ?, ?, ?, ?, ?)";
+    // SQL Syntax હવે બરાબર છે
+    $qry = "INSERT INTO song (name, image, length, lyrics, album, instrumental, vocal, poster) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
 
     $stmt = $con->prepare($qry);
-    $stmt->bind_param("sssssss", $name, $imageUrl, $length, $lyrics, $album, $instrumentalUrl, $vocalUrl);
+
+    // $posterUrl ને bind કર્યું
+    $stmt->bind_param("ssssssss", $name, $imageUrl, $length, $lyrics, $album, $instrumentalUrl, $vocalUrl, $posterUrl); // 8 's'
 
     if ($stmt->execute()) {
         $songId = $stmt->insert_id;
 
-        // --- MAPPING (Artist and Genre) ---
-        // Note: For best practice, use Prepared Statements here too, but retaining mysqli_query for simplicity
+        // --- MAPPING (Artist, Genre, and Language) ---
         if (!empty($_POST['artistId'])) {
             foreach ($_POST['artistId'] as $artistId) {
                 mysqli_query($con, "INSERT INTO artist_song (artist_id, song_id) VALUES ('$artistId', '$songId')");
@@ -123,25 +154,19 @@ if (isset($_POST["insert"])) {
             }
         }
 
-        // --- SweetAlert Success Message (v1 Syntax) ---
-        // Isse SweetAlert message dikhega aur OK click hone par redirect hoga.
-        // SweetAlert Success Message (v1 Syntax)
-
+        // --- Success Message ---
         $_SESSION['status'] = 'success';
-
         $_SESSION['message'] = 'Song has been successfully inserted!';
         header("location:" . $baseUrl . "view_songs.php");
 
 
     } else {
         // Database Execution Failed
-
         $_SESSION['status'] = 'error';
-        $_SESSION['message'] = 'Database insert failed. Please try again.';
+        // Database Error message બતાવવું મદદરૂપ છે.
+        $_SESSION['message'] = 'Database insert failed. Please check the database schema (e.g., if the "poster" column exists). Error: ' . $stmt->error;
 
         header("location:" . $baseUrl . "view_songs.php");
-
-        // echo "<script>alert('❌ Oops... Database insert failed!'); window.history.back();</script>";
     }
 
     $stmt->close();

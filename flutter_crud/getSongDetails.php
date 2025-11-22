@@ -1,21 +1,17 @@
 <?php
-include("connection.php");
-
-// Set the response content type to JSON
 header('Content-Type: application/json');
+include 'connection.php'; // Make sure this path is correct
 
-// Check if a song ID was provided
-if (!isset($_GET["sid"])) {
-    echo json_encode(["error" => "No id provided"]);
+if (!isset($_GET['sid']) || empty($_GET['sid'])) {
+    echo json_encode(['error' => 'Song ID (sid) is required.']);
     exit;
 }
 
-// NOTE: Directly using $_GET["sid"] (not safe for production).
-// Use prepared statements (mysqli_prepare/bind_param) in a real application.
-$sid = $_GET["sid"];
+// Use prepared statements in a real app!
+$sid = $con->real_escape_string($_GET['sid']);
 
-// SQL query: get song details, singers, genres, AND LANGUAGES
-$qry = "
+// --- 1. Get Main Song Details (and Languages using GROUP_CONCAT) ---
+$songResult = $con->query("
     SELECT 
         s.sid, 
         s.name, 
@@ -25,51 +21,72 @@ $qry = "
         s.instrumental, 
         s.vocal, 
         s.lyrics,
-        GROUP_CONCAT(DISTINCT a.name SEPARATOR ', ') AS singer_name,
-        GROUP_CONCAT(DISTINCT g.name SEPARATOR ', ') AS genre_names,
-        GROUP_CONCAT(DISTINCT l.name SEPARATOR ', ') AS language_names -- Added language names
+        s.album,
+        GROUP_CONCAT(DISTINCT l.name SEPARATOR ', ') AS language_names
     FROM 
         song AS s
     LEFT JOIN 
-        artist_song AS asa ON s.sid = asa.song_id
+        language_song AS lsa ON s.sid = lsa.song_id
     LEFT JOIN 
-        artist AS a ON asa.artist_id = a.arid
-    LEFT JOIN 
-        genre_song AS gsa ON s.sid = gsa.song_id
-    LEFT JOIN 
-        genre AS g ON gsa.genre_id = g.gid
-    
-    -- LEFT JOINS for Language (UPDATED based on your language_song table)
-    LEFT JOIN 
-        language_song AS lsa ON s.sid = lsa.song_id      -- Join using song_id
-    LEFT JOIN 
-        language AS l ON lsa.language_id = l.lid         -- Join using language_id = lid
-        
+        language AS l ON lsa.language_id = l.lid
     WHERE 
         s.sid = '$sid'
     GROUP BY 
         s.sid
-";
+");
 
-$res = mysqli_query($con, $qry);
-
-if ($res && mysqli_num_rows($res) > 0) {
-    $data = mysqli_fetch_assoc($res);
-
-    // Map singers
-    $data['singer'] = $data['singer_name'] ?? 'Unknown Singer';
-    unset($data['singer_name']);
-
-    // Map genres
-    $data['genres'] = $data['genre_names'] ?? 'Unknown Genre';
-    unset($data['genre_names']);
-
-    // Map languages (NEW MAPPING)
-    $data['languages'] = $data['language_names'] ?? 'Unknown Language';
-    unset($data['language_names']);
-
-    echo json_encode($data);
-} else {
-    echo json_encode(["error" => "Song not found"]);
+if ($songResult->num_rows == 0) {
+    echo json_encode(['error' => 'Song not found.']);
+    exit;
 }
+
+$songDetails = $songResult->fetch_assoc();
+
+// --- 2. Get Singers (as an array of objects) ---
+$singers = [];
+$singersQuery = "
+    SELECT a.arid AS id, a.name 
+    FROM artist AS a
+    LEFT JOIN artist_song AS asa ON a.arid = asa.artist_id
+    WHERE asa.song_id = '$sid'
+    ORDER BY a.name
+";
+$singersResult = $con->query($singersQuery);
+while ($row = $singersResult->fetch_assoc()) {
+    $singers[] = $row; // Adds each singer object to the array
+}
+
+// --- 3. Get Genres (as an array of objects) ---
+$genres = [];
+$genresQuery = "
+    SELECT g.gid AS id, g.name
+    FROM genre AS g
+    LEFT JOIN genre_song AS gsa ON g.gid = gsa.genre_id
+    WHERE gsa.song_id = '$sid'
+    ORDER BY g.name
+";
+$genresResult = $con->query($genresQuery);
+while ($row = $genresResult->fetch_assoc()) {
+    $genres[] = $row; // Adds each genre object to the array
+}
+
+// --- 4. Assemble the Final JSON ---
+$output = [
+    'sid' => $songDetails['sid'],
+    'name' => $songDetails['name'],
+    'image' => $songDetails['image'],
+    'poster' => $songDetails['poster'],
+    'length' => $songDetails['length'],
+    'instrumental' => $songDetails['instrumental'],
+    'vocal' => $songDetails['vocal'],
+    'lyrics' => $songDetails['lyrics'],
+    'album' => $songDetails['album'],
+    'languages' => $songDetails['language_names'], // This is the string
+    'singers' => $singers, // This is the array
+    'genres' => $genres     // This is the array
+];
+
+echo json_encode($output);
+
+$con->close();
 ?>

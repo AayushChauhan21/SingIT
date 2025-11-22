@@ -1,16 +1,14 @@
 <?php
 include("connection.php");
 
-// 🔹 Step 1: Fetch all songs
-$songSql = "SELECT * FROM song ORDER BY sid DESC";
-$songResult = mysqli_query($con, $songSql);
+$sql = "SELECT * FROM song"; 
+$result = mysqli_query($con, $sql);
 
+header("Content-Type: application/json");
 $songs = [];
-while ($song = mysqli_fetch_assoc($songResult)) {
-    $songs[] = $song;
+while ($row = mysqli_fetch_assoc($result)) {
+    $songs[] = $row;
 }
 
-// 🔚 Step 2: Return JSON
-header("Content-Type: application/json");
 echo json_encode($songs);
 ?>

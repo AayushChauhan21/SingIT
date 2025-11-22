@@ -9,9 +9,19 @@ if (isset($_POST["email"]) && isset($_POST["pass"])) {
     $res = mysqli_query($con, $qry);
 
     if (mysqli_num_rows($res) > 0) {
-        echo json_encode(["success" => "true"]);
+        $row = mysqli_fetch_assoc($res);
+        
+        $response = [
+            "success" => "true",
+            "id" => $row['id']
+        ];
+        
+        echo json_encode($response);
+        
     } else {
         echo json_encode(["success" => "false", "error" => "Invalid email or password"]);
     }
+} else {
+    echo json_encode(["success" => "false", "error" => "Email and password are required"]);
 }
 ?>

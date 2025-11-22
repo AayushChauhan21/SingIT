@@ -24,4 +24,10 @@ if ($lid) {
     header("location:view_language.php");
 }
 
+$id = $_GET['id'];
+if ($id) {
+    $qry = mysqli_query($con, "delete from slider where id=$id");
+    header("location:view_slider.php");
+}
+
 ?>
