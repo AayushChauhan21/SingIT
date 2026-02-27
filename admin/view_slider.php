@@ -91,7 +91,7 @@ if ($response !== FALSE) {
                                         </td>
 
                                         <td>
-                                            <a href="edit_slider.php?id=<?= htmlspecialchars($row['id'] ?? '') ?>">
+                                            <a href="add_slider.php">
                                                 <i class="uil uil-pen btn btn-md btn-success"></i>
                                             </a>
                                         </td>

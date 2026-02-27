@@ -2,7 +2,7 @@
 // FILE: edit_slider.php (Allows multiple selections using checkboxes, pre-populates current selections)
 
 include('demo.php');
-// include('hhh.php');
+include('hhh.php');
 include('connection.php'); // Database connection needed to fetch current slider songs
 error_reporting(1);
 
@@ -22,7 +22,7 @@ if ($response !== FALSE) {
 }
 
 // 2. ⚡ Fetch CURRENT Slider Songs from DB
-$sliderQry = mysqli_query($con, "SELECT song_id FROM slider");
+$sliderQry = mysqli_query($con, "SELECT sid FROM slider");
 if ($sliderQry) {
     while ($row = mysqli_fetch_assoc($sliderQry)) {
         // Store all current SIDs as strings
