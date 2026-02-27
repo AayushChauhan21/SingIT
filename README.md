@@ -1,92 +1,68 @@
-# 🎤 SingIT: Interactive Karaoke Experience  
-> “Where every vocal finds its music!”
+# SingIT
+> From Shower Singer to Stage Singer❤️‍🔥
 
-## 📱 Overview  
-SingIT is an Android-based music application that offers a dynamic karaoke experience. It allows users to interact with songs in three distinct modes:
-- 🎧 Original track with synchronized lyrics  
-- 🎙️ User’s vocal recording  
-- 🎼 Instrumental (karaoke) version  
-
-A custom sound bar enables smooth switching and blending between these modes, enhancing user engagement and musical creativity.
+SingIT is an Android app made for anyone who loves to sing. It’s designed to be a creative space where you can play around with tracks and sync your voice in real-time, basically turning your phone into a portable karaoke machine.
 
 ---
 
-## 🎯 Objectives  
-- Build a user-friendly Android app for karaoke-style music interaction  
-- Enable users to record vocals and overlay them on instrumental tracks  
-- Implement a sound bar controller for seamless mode transitions  
-- Provide account management features: sign-up, login, profile  
-- Ensure real-time lyric synchronization for sing-along functionality  
+### Project Overview
+The app lets you interact with music using three different audio modes. You can easily switch between them to get the exact sound you want:
+
+* **Original Audio:** Play the full song with lyrics that move in time with the music.
+* **Vocal Integration:** Record your own voice while you sing along.
+* **Instrumental Mode:** Standard karaoke style with just the backing tracks.
+
+The best part is the custom sound bar controller. It lets you mix and switch between these modes smoothly while the song is playing.
 
 ---
 
-## 🧰 Tech Stack  
-
-| Layer        | Tools & Technologies                          |
-|--------------|-----------------------------------------------|
-| OS           | Windows 11                                    |
-| Frontend     | HTML, CSS, Bootstrap, JavaScript, jQuery, AJAX|
-| Backend      | PHP                                            |
-| Database     | MySQL                                          |
-| App Language | Flutter                                        |
-| Web Server   | XAMPP                                          |
+### Development Objectives
+* **User-Friendly Design:** A simple and responsive Android interface that keeps up with the music.
+* **Smart Recording:** Let users record their vocals directly over instrumental tracks.
+* **Smooth Mixing:** A custom-built controller to change audio modes on the fly.
+* **Safe & Private:** Standard login and profile management to keep user data secure.
+* **Lyric Sync:** Making sure the lyrics show up at the exact right moment.
 
 ---
 
-## 🗃️ Database Design  
+### Technical Specifications
 
-**Key Tables:**
-- `admin`: Stores admin credentials and profile  
-- `user`: Manages user accounts and images  
-- `artist`: Artist profiles and images  
-- `genre`: Music genres with images  
-- `song`: Song metadata including lyrics, album, instrumental & vocal tracks  
-- `artist_song`: Mapping between artists and songs  
-- `genre_song`: Mapping between genres and songs  
+**Tech Stack**
 
-Each table includes appropriate primary and foreign keys for relational integrity.
+| Layer | Technology |
+| :--- | :--- |
+| **Mobile App** | Flutter |
+| **Admin Panel** | HTML5, CSS3, Bootstrap, JavaScript |
+| **Backend Logic** | PHP, jQuery, AJAX |
+| **Database** | MySQL |
+| **Server** | XAMPP |
+| **OS** | Windows 11 |
 
----
-
-## 📊 Diagrams Included  
-- Use Case Diagrams (Admin & User)  
-- Activity Diagrams (Admin & User)  
-- Class Diagram  
-
-These diagrams illustrate system flow, user interactions, and object relationships.
+**What’s inside?**
+* **Admin Dashboard:** A place to manage artists, genres, and all the song info.
+* **Upload System:** A way for admins to add or edit songs easily.
+* **User Accounts:** Registration and login so you can have your own profile.
+* **Song Player:** A detail view for each song with live lyrics.
 
 ---
 
-## 🖼️ Screenshots  
-The PDF includes screenshots of:
-- Admin dashboard  
-- Genre and artist management  
-- Song upload and editing  
-- User registration and login  
-- Song detail view with synchronized lyrics  
+### System Constraints
+* **Audio Noise:** You might hear a little background noise during vocal isolation depending on the song.
+* **Phone Power:** The app works best on mid-range or high-end Android phones.
+* **Internet:** You'll need a steady connection to stream music and save data.
+* **Mic Quality:** Your recording will only sound as good as your phone's microphone.
 
 ---
 
-## ⚠️ Limitations  
-- 🎙️ Vocal separation may introduce background noise  
-- 📱 Performance may vary on low-end devices  
-- 🌐 Requires stable internet for streaming and cloud storage  
-- 🔊 Recording quality depends on device microphone and environment  
+### Documentation & References
+* **Flutter Docs:** [Official Documentation](https://docs.flutter.dev/)
+* **Tutorials:** [SingIT Development Video Series](https://www.youtube.com/watch?v=SY9TCaysZYk&list=PLokCZZIolas8frkQy4ZI5DcwKXfP9jvzh)
+* **Diagrams:** You can find the Use Case, Activity, and Class diagrams in the `/docs` folder.
 
 ---
 
-## 📚 References  
-- [Flutter Documentation](https://docs.flutter.dev/)  
-- [YouTube Tutorial Series](https://www.youtube.com/watch?v=SY9TCaysZYk&list=PLokCZZIolas8frkQy4ZI5DcwKXfP9jvzh)  
+### Creator
+**Aayush Dharmesh Chauhan** *Year: 2025–26*
 
 ---
-
-## 🙏 Thank You  
-Developed by:
-- Aayush Chauhan D [ET24MTCA73]  
-- Dhruv Sariya J [ET24MTCA122]  
-- Agrawal Nimit A [ET24MTCA069]  
-
-Under the guidance of **Prof. Karuna N. Patel**  
-Sarvajanik College of Engineering & Technology, Surat  
-Academic Year: 2025–26
+*Developed as a project for the Master of Computer Applications (MCA) program.*
