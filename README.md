@@ -62,7 +62,9 @@ The best part is the custom sound bar controller. It lets you mix and switch bet
 ---
 
 ### Creator
-**Aayush Dharmesh Chauhan** *Year: 2025–26*
+**Aayush Dharmesh Chauhan**
+**Dhruv Jayvadan Sariya**
+*Year: 2025–26*
 
 ---
 *Developed as a project for the Master of Computer Applications (MCA) program.*
