@@ -10,8 +10,9 @@ $id = $_SESSION['admin_id'] ?? 1;
 // Dynamically build base URL for redirection (for session messages if the API sends them back)
 $baseUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http");
 $baseUrl .= "://" . $_SERVER['HTTP_HOST'] . "/SingIT/admin/";
-// NOTE: I am keeping your API name as 'updateProfile.php' here.
-$api_url = "http://localhost/SIngIT/flutter_crud/updateProfile.php"; // <--- 🔔 API TARGET URL
+
+// Changed to relative path as requested
+$api_url = "../flutter_crud/updateProfile.php"; 
 
 // --- Fetch Admin Data ---
 $qry = mysqli_query($con, "SELECT id, name, email, password, photo FROM admin WHERE id=$id");
@@ -26,13 +27,11 @@ $email = htmlspecialchars($row["email"]);
 $password = htmlspecialchars($row["password"]);
 $photo = htmlspecialchars($row['photo']);
 
-// 🚀 CHANGE: Use the 'photo' value directly as the source URL (it's now the Cloudinary URL)
-// If photo is empty, you might want a local fallback image path here for consistency.
-// We assume if 'photo' is not a URL (e.g., old local file name), it will fall back to a default image.
-// For now, we assume if $photo is present, it's a full URL or the necessary value.
+// Use the 'photo' value directly as the source URL (it's now the Cloudinary URL)
+// If photo is empty, fallback to a default image.
 $dest = !empty($photo) && (strpos($photo, 'http') === 0 || strpos($photo, '://') !== false)
     ? $photo
-    : 'assets/img/default_profile.png'; // Using a reasonable fallback image path
+    : 'assets/img/default_profile.png'; 
 
 // --- Session Message Check (for SweetAlert display) ---
 $session_status = $_SESSION['status'] ?? '';
@@ -69,20 +68,15 @@ if (isset($_SESSION['message']))
         border-radius: 10px;
         border: 2px dashed var(--dark-color);
         color: #fff;
-        /* Text color for drop container */
         cursor: pointer;
         transition: background .2s ease-in-out, border .2s ease-in-out;
         background-color: #6259ca;
-        /* Purple background */
         border-color: #4c449c;
-        /* Darker purple border */
     }
 
     .drop-container:hover {
         background: #7a70d8;
-        /* Lighter purple on hover */
         border-color: #5d54b8;
-        /* Slightly lighter border on hover */
     }
 
     .drop-title {
@@ -93,7 +87,6 @@ if (isset($_SESSION['message']))
         transition: color .2s ease-in-out;
     }
 
-    /* Style for the browse button inside the drop container */
     #custom-browse-button {
         background: black;
         padding: 10px 20px;
@@ -109,7 +102,6 @@ if (isset($_SESSION['message']))
         background: rgb(69, 68, 68);
     }
 
-    /* Hide the actual file input element */
     input[type=file] {
         display: none;
     }
@@ -141,7 +133,6 @@ if (isset($_SESSION['message']))
                 <div class="panel profile-cover">
                     <div class="profile-cover__img">
                         <img id="img" src="<?= $dest ?>" height="115" width="115" alt="Admin Photo">
-
                         <h3 class="h3">
                             <?= $name ?>
                         </h3>
@@ -295,7 +286,6 @@ include('fff.php');
 ?>
 
 <script>
-    // --- SweetAlert Helper Functions (Retained) ---
     const status = "<?= $session_status ?>";
     const message = "<?= addslashes($session_message) ?>";
 
@@ -310,19 +300,15 @@ include('fff.php');
     }
 
     $(document).ready(function () {
-        // --- 1. SweetAlert Display ---
         if (message && status) {
             let titleText = status === 'success' ? 'Success!' : 'Update Failed';
             triggerAlert(status, titleText, message);
         }
 
-        // --- 2. File Input Custom Display Logic (Simplified) ---
         const fileInput = document.getElementById('photo');
         const customBrowseButton = document.getElementById('custom-browse-button');
         const dropTitleText = document.getElementById('drop-title-text');
-        // NOTE: fileNameDisplay variable removed
 
-        // Trigger the hidden file input when the custom browse button is clicked
         customBrowseButton.addEventListener('click', function (event) {
             event.preventDefault();
             fileInput.click();
@@ -330,35 +316,32 @@ include('fff.php');
 
         fileInput.addEventListener('change', function () {
             if (this.files.length > 0) {
-                // Update title to indicate a file has been chosen
                 dropTitleText.textContent = "File selected: " + this.files[0].name;
             } else {
-                // Revert title if file selection is cancelled
                 dropTitleText.textContent = "Drop photo here or click to select";
             }
         });
 
-        // Optional: Add drag/drop functionality visual feedback (CSS already handles hover)
         const dropContainer = document.getElementById('dropcontainer');
 
         dropContainer.addEventListener('dragover', (e) => {
             e.preventDefault();
-            dropContainer.style.borderColor = '#a0a0ff'; // Highlight on drag over
+            dropContainer.style.borderColor = '#a0a0ff'; 
         });
 
         dropContainer.addEventListener('dragleave', () => {
-            dropContainer.style.borderColor = '#4c449c'; // Revert on drag leave
+            dropContainer.style.borderColor = '#4c449c'; 
         });
 
         dropContainer.addEventListener('drop', (e) => {
             e.preventDefault();
-            dropContainer.style.borderColor = '#4c449c'; // Revert on drop
+            dropContainer.style.borderColor = '#4c449c'; 
 
             const files = e.dataTransfer.files;
             if (files.length > 0) {
-                fileInput.files = files; // Assign dropped files to the input
+                fileInput.files = files; 
                 const event = new Event('change');
-                fileInput.dispatchEvent(event); // Trigger change event to update display
+                fileInput.dispatchEvent(event); 
             }
         });
     });

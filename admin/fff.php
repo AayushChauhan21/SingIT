@@ -8,6 +8,27 @@
 <br>
 <br>
 
+<style>
+#heart {
+    width: 20px;
+    font-size: 15px;
+    color: red;
+    text-shadow: 0px 0px 7px red;
+    display: inline-block; 
+    animation: beat 1.2s infinite;
+}
+
+@keyframes beat {
+    0%, 50%, 75%, 100% {
+        transform: scale(1);
+    }
+    
+    62%, 87% {
+        transform: scale(1.2);
+    }
+}
+</style>
+
 <div class="sidebar sidebar-right sidebar-animate">
     <div class="sidebar-icon">
         <a href="#" class="text-end float-end text-dark fs-20" data-bs-toggle="sidebar-right"
@@ -145,9 +166,8 @@
     <div class="container">
         <div class="row row-sm">
             <div class="col-md-12">
-                <span>Copyright © 2024
-                    <!-- <a href="#">Spruha</a> -->. Designed by DJSariya.
-                    All rights reserved.
+                <span>
+                    Made with <span id="heart">❤️</span> by Aayush Chauhan.
                 </span>
             </div>
         </div>
@@ -245,7 +265,7 @@ include('assets/js_sweet_alert/sweet_alert.php');
 <script>
     // --- Live Search with Debounce Logic ---
 
-    const API_ENDPOINT = 'http://localhost/SIngIT/flutter_crud/search.php';
+    const API_ENDPOINT = '../flutter_crud/search.php';
     const searchInput = document.getElementById('header-search-input');
     const resultsWrapper = document.getElementById('search-results-wrapper');
     const resultsContainer = document.getElementById('header-results-container');

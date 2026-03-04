@@ -4,13 +4,13 @@ include('hhh.php');
 include('connection.php');
 error_reporting(1);
 
-// Default image path defined at the top
-// $default_img_path = 'favicon_1.png'; // Default path assumption
+// Dynamically determine protocol (http or https) and host
+$protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http";
+$host = $_SERVER['HTTP_HOST'];
 
-// 🔹 Fetch special song data from API
-// NOTE: Assuming your Special.php file contains the optimized SQL query you provided:
-// (SELECT sl.id, s.sid, s.name, s.poster AS image, GROUP_CONCAT(a.name) AS singer_name, GROUP_CONCAT(DISTINCT a.arid) AS artist_ids FROM special sl JOIN song s...)
-$apiUrl = "http://localhost/SIngIT/flutter_crud/getSpecial.php";
+// Build the URL dynamically so it works on localhost AND live servers
+$apiUrl = $protocol . "://" . $host . "/SIngIT/flutter_crud/getSpecial.php";
+
 $special_songs = [];
 
 $response = @file_get_contents($apiUrl);
@@ -21,13 +21,11 @@ if ($response !== FALSE) {
     }
 }
 ?>
-<!-- <link rel="stylesheet" href="style_adm.css"> -->
 <style>
     .btn-md {
         font-size: 20px;
     }
 </style>
-
 
 <div class="page-header">
     <div>
@@ -109,22 +107,13 @@ if ($response !== FALSE) {
     </div>
 </div>
 
-
 </div>
 </div>
 </div>
-<!-- END MAIN-CONTENT -->
-
-<!-- RIGHT-SIDEBAR -->
-
 <?php
 include('fff.php');
 ?>
 
-
-
-
-<!-- INTERNAL DATA TABLE JS -->
 <script src="assets/plugins/datatable/js/jquery.dataTables.min.js"></script>
 <script src="assets/plugins/datatable/js/dataTables.bootstrap5.js"></script>
 <script src="assets/plugins/datatable/js/dataTables.buttons.min.js"></script>
@@ -140,7 +129,6 @@ include('fff.php');
 <script src="assets/js/table-data.js"></script>
 <script src="assets/js/select2.js"></script>
 
-<!-- INTERNAL SWEET-ALERT JS -->
 <script src="assets/plugins/sweet-alert/sweetalert.min.js"></script>
 <script src="assets/plugins/sweet-alert/jquery.sweet-alert.js"></script>
 

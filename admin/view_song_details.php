@@ -8,9 +8,12 @@ $sid = $_GET['sid'];
 // --- NEW: Function to fetch data from the API endpoint ---
 function fetchSongDetails($sid)
 {
-    // Construct the URL to your getSongDetails.php API
-    // IMPORTANT: Replace 'http://localhost/your_path/' with the actual base URL where your API is hosted
-    $api_url = "http://localhost/SIngIT/flutter_crud/getSongDetails.php?sid=" . urlencode($sid);
+    // Dynamically determine protocol and host for PHP
+    $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http";
+    $host = $_SERVER['HTTP_HOST'];
+    
+    // Construct the dynamic URL to your getSongDetails.php API
+    $api_url = $protocol . "://" . $host . "/SIngIT/flutter_crud/getSongDetails.php?sid=" . urlencode($sid);
 
     // Initialize cURL session
     $ch = curl_init();
@@ -175,7 +178,7 @@ if ($row) {
                                     <div class="container my-4">
                                         <div class="d-flex align-items-center mb-4">
                                             <img src=" <?= htmlspecialchars($row['image']) ?>" class=" rounded-10"
-                                                height="100"                                             width="100"
+                                                height="100"                                                 width="100"
                                                 alt="Song Image">
 
                                             <div class="ms-3">
@@ -187,7 +190,7 @@ if ($row) {
                                                 <p class="text-muted mb-0" style="font-size: 1.0rem;">
                                                     <i class="uil uil-compact-disc text-primary"></i>
 
-                                                    <?php echo htmlspecialchars($row['album']); // Assuming 'album' is still available or will be added to the API ?>
+                                                    <?php echo htmlspecialchars($row['album'] ?? ''); // Assuming 'album' is still available or will be added to the API ?>
 
                                                 </p>
 
@@ -200,11 +203,13 @@ if ($row) {
 
                                                 <?php
                                                 // Iterate over the 'genres' array from the API
-                                                foreach ($row['genres'] as $genre) {
-                                                    echo "<div class='d-flex align-items-center px-3 py-2 rounded-pill bg-light text-dark shadow-sm'
-                                                            style='font-weight: 500;'>
-                                                            " . htmlspecialchars($genre['name']) . "
-                                                        </div>";
+                                                if (!empty($row['genres'])) {
+                                                    foreach ($row['genres'] as $genre) {
+                                                        echo "<div class='d-flex align-items-center px-3 py-2 rounded-pill bg-light text-dark shadow-sm'
+                                                                style='font-weight: 500;'>
+                                                                " . htmlspecialchars($genre['name']) . "
+                                                            </div>";
+                                                    }
                                                 }
                                                 ?>
 
@@ -217,7 +222,7 @@ if ($row) {
                                         <div class="bg-light text-dark" style=" max-height:320px; overflow-y:auto; padding:10px; border:1px solid #ccc; font-weight:500;
 border-radius:10px; line-height:1.8;">
 
-                                            <?php echo nl2br(htmlspecialchars($row['lyrics'])); ?>
+                                            <?php echo nl2br(htmlspecialchars($row['lyrics'] ?? '')); ?>
 
                                         </div>
 
@@ -238,9 +243,9 @@ border-radius:10px; line-height:1.8;">
                                 <i class='uil uil-pen me-1'></i> Edit Song
                             </a>
 
-                            <a href='delete.php?sid=<?= htmlspecialchars($row['sid']) ?>'          
-                                class="btn btn-md btn-danger delete-song-alert"                          
-                                data-sid="<?= htmlspecialchars($row['sid']) ?>"                            
+                            <a href='delete.php?sid=<?= htmlspecialchars($row['sid']) ?>'          
+                                class="btn btn-md btn-danger delete-song-alert"                          
+                                data-sid="<?= htmlspecialchars($row['sid']) ?>"                            
                                 style="padding: 10px 25px; border-radius: 8px;">
                                 <i class='uil uil-trash-alt me-1'></i> Delete
                             </a>
@@ -251,7 +256,7 @@ border-radius:10px; line-height:1.8;">
                             <div class="d-flex flex-column gap-4 bg-light p-4 rounded-10 shadow-sm">
 
                                 <div class="d-flex align-items-center gap-3">
-                                    <div class="bg-white rounded-circle d-flex justify-content-center align-items-center"  
+                                    <div class="bg-white rounded-circle d-flex justify-content-center align-items-center"  
                                         style="width: 45px; height: 45px;">
                                         <b class="uil uil-music text-primary" style="font-size: 1.35rem;"></b>
                                     </div>
@@ -264,7 +269,7 @@ border-radius:10px; line-height:1.8;">
                                 </div>
 
                                 <div class="d-flex align-items-center gap-3">
-                                    <div class="bg-white rounded-circle d-flex justify-content-center align-items-center"  
+                                    <div class="bg-white rounded-circle d-flex justify-content-center align-items-center"  
                                         style="width: 45px; height: 45px;">
                                         <i class="uil uil-user-square text-primary" style="font-size: 1.35rem;"></i>
                                     </div>
@@ -277,17 +282,19 @@ border-radius:10px; line-height:1.8;">
 
                                     <?php
                                     // Iterate over the 'singers' array from the API
-                                    foreach ($row['singers'] as $singer) {
-                                        echo "<div class='d-flex align-items-center px-3 py-2 rounded-pill bg-white text-dark shadow-sm'
-                                            style='font-weight: 500;'>
-                                            " . htmlspecialchars($singer['name']) . "
-                                        </div>";
+                                    if (!empty($row['singers'])) {
+                                        foreach ($row['singers'] as $singer) {
+                                            echo "<div class='d-flex align-items-center px-3 py-2 rounded-pill bg-white text-dark shadow-sm'
+                                                style='font-weight: 500;'>
+                                                " . htmlspecialchars($singer['name']) . "
+                                            </div>";
+                                        }
                                     }
                                     ?>
                                 </div>
 
                                 <div class="d-flex align-items-center gap-3">
-                                    <div class="bg-white rounded-circle d-flex justify-content-center align-items-center"  
+                                    <div class="bg-white rounded-circle d-flex justify-content-center align-items-center"  
                                         style="width: 45px; height: 45px;">
                                         <i class="uil uil-language text-primary" style="font-size: 1.35rem;"></i>
                                     </div>
@@ -300,7 +307,7 @@ border-radius:10px; line-height:1.8;">
 
                                     <?php
                                     // Use the comma-separated string from the API
-                                    $language_names = htmlspecialchars($row['languages']);
+                                    $language_names = htmlspecialchars($row['languages'] ?? '');
                                     if (!empty($language_names)) {
                                         $languages = explode(', ', $language_names);
                                         foreach ($languages as $lang_name) {
@@ -316,14 +323,14 @@ border-radius:10px; line-height:1.8;">
                                 </div>
 
                                 <div class="d-flex align-items-center gap-3 mt-2">
-                                    <div class="bg-white rounded-circle d-flex justify-content-center align-items-center"  
+                                    <div class="bg-white rounded-circle d-flex justify-content-center align-items-center"  
                                         style="width: 45px; height: 45px;">
                                         <i class="uil uil-clock-eight text-primary" style="font-size: 1.35rem;"></i>
                                     </div>
                                     <div>
                                         <strong style="font-size: 1.10rem;" class="text-dark">Duration</strong>
                                         <small class="text-muted d-block" style="font-size: 1rem;">
-                                            <?= htmlspecialchars($row['length']) ?>
+                                            <?= htmlspecialchars($row['length'] ?? '') ?>
                                         </small>
                                     </div>
                                 </div>
@@ -337,7 +344,7 @@ border-radius:10px; line-height:1.8;">
 
                             <div class="flex-grow-1 d-flex flex-column align-items-center">
                                 <div class="d-flex align-items-center gap-3 mb-2">
-                                    <div class="bg-white rounded-circle d-flex justify-content-center align-items-center"  
+                                    <div class="bg-white rounded-circle d-flex justify-content-center align-items-center"  
                                         style="width: 40px; height: 40px;">
                                         <i class="uil uil-image text-primary" style="font-size: 1.2rem;"></i>
                                     </div>
@@ -345,7 +352,7 @@ border-radius:10px; line-height:1.8;">
                                         <strong style="font-size: 1.0rem;" class="text-dark">Poster</strong>
                                     </div>
                                 </div>
-                                <button type="button" class="btn btn-primary w-100" data-bs-toggle="modal"                  
+                                <button type="button" class="btn btn-primary w-100" data-bs-toggle="modal"                  
                                     data-bs-target="#posterModal">
                                     <i class="uil uil-expand-arrows-alt"></i> View Poster
                                 </button>
@@ -353,7 +360,7 @@ border-radius:10px; line-height:1.8;">
 
                             <div class="flex-grow-1 d-flex flex-column align-items-center">
                                 <div class="d-flex align-items-center gap-3 mb-2">
-                                    <div class="bg-white rounded-circle d-flex justify-content-center align-items-center"  
+                                    <div class="bg-white rounded-circle d-flex justify-content-center align-items-center"  
                                         style="width: 40px; height: 40px;">
                                         <i class="uil uil-music-note text-primary" style="font-size: 1.2rem;"></i>
                                     </div>
@@ -361,7 +368,7 @@ border-radius:10px; line-height:1.8;">
                                         <strong style="font-size: 1.0rem;" class="text-dark">Instrumental Track</strong>
                                     </div>
                                 </div>
-                                <button type="button" class="btn btn-primary w-100" data-bs-toggle="modal"                  
+                                <button type="button" class="btn btn-primary w-100" data-bs-toggle="modal"                  
                                     data-bs-target="#instrumentalModal">
                                     <i class="uil uil-expand-arrows-alt"></i> Listen
                                     Instrumental Track
@@ -370,7 +377,7 @@ border-radius:10px; line-height:1.8;">
 
                             <div class="flex-grow-1 d-flex flex-column align-items-center">
                                 <div class="d-flex align-items-center gap-3 mb-2">
-                                    <div class="bg-white rounded-circle d-flex justify-content-center align-items-center"  
+                                    <div class="bg-white rounded-circle d-flex justify-content-center align-items-center"  
                                         style="width: 40px; height: 40px;">
                                         <i class="uil uil-microphone text-primary" style="font-size: 1.2rem;"></i>
                                     </div>
@@ -378,7 +385,7 @@ border-radius:10px; line-height:1.8;">
                                         <strong style="font-size: 1.0rem;" class="text-dark">Vocal Track</strong>
                                     </div>
                                 </div>
-                                <button type="button" class="btn btn-primary w-100" data-bs-toggle="modal"                  
+                                <button type="button" class="btn btn-primary w-100" data-bs-toggle="modal"                  
                                     data-bs-target="#vocalModal">
                                     <i class="uil uil-expand-arrows-alt"></i> Listen Vocal
                                     Track
@@ -387,7 +394,7 @@ border-radius:10px; line-height:1.8;">
 
                         </div>
                     </div>
-                    <div class="modal fade" id="posterModal" tabindex="-1" aria-labelledby="posterModalLabel"              
+                    <div class="modal fade" id="posterModal" tabindex="-1" aria-labelledby="posterModalLabel"              
                         aria-hidden="true">
                         <div class="modal-dialog modal-lg modal-dialog-centered">
                             <div class="card modal-content shadow border-0" style="border-radius: 15px;">
@@ -401,15 +408,15 @@ border-radius:10px; line-height:1.8;">
                                             <strong style="font-size: 1.0rem;" class="text-dark">Poster</strong>
                                         </div>
                                     </div>
-                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"        
+                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"        
                                         aria-label="Close"></button>
                                 </div>
                                 <div class="modal-body text-center pt-2">
-                                    <img src="<?= htmlspecialchars($row['poster']) ?>" alt="Song Poster"                    
+                                    <img src="<?= htmlspecialchars($row['poster'] ?? '') ?>" alt="Song Poster"                    
                                         class="img-fluid rounded" style="max-height: 80vh; object-fit: contain;">
                                 </div>
                                 <div class="modal-footer border-0 pt-0">
-                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><b><i          
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><b><i          
                                                 class="uil uil-times-square"></i>
                                             Close</b></button>
                                 </div>
@@ -417,7 +424,7 @@ border-radius:10px; line-height:1.8;">
                         </div>
                     </div>
 
-                    <div class="modal fade" id="instrumentalModal" tabindex="-1" aria-labelledby="instrumentalModalLabel"  
+                    <div class="modal fade" id="instrumentalModal" tabindex="-1" aria-labelledby="instrumentalModalLabel"  
                         aria-hidden="true">
                         <div class="modal-dialog modal-dialog-centered">
                             <div class="card modal-content text-white shadow border-0" style="border-radius: 15px;">
@@ -431,7 +438,7 @@ border-radius:10px; line-height:1.8;">
                                             <strong style="font-size: 1.0rem;" class="text-dark">Instrumental Track</strong>
                                         </div>
                                     </div>
-                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"        
+                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"        
                                         aria-label="Close"></button>
                                 </div>
                                 <div class="modal-body text-center pt-2">
@@ -440,13 +447,13 @@ border-radius:10px; line-height:1.8;">
                                         (Instrumental)</p>
                                     <audio controls style="width: 100%;">
 
-                                        <source src="<?= htmlspecialchars($row['instrumental']) ?>" type="audio/mpeg">
+                                        <source src="<?= htmlspecialchars($row['instrumental'] ?? '') ?>" type="audio/mpeg">
                                         Your browser does not support the audio element.
 
                                     </audio>
                                 </div>
                                 <div class="modal-footer border-0 pt-0">
-                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><b><i          
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><b><i          
                                                 class="uil uil-times-square"></i>
                                             Close</b></button>
                                 </div>
@@ -468,7 +475,7 @@ border-radius:10px; line-height:1.8;">
                                             <strong style="font-size: 1.0rem;" class="text-dark">Vocal Track</strong>
                                         </div>
                                     </div>
-                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"        
+                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"        
                                         aria-label="Close"></button>
                                 </div>
                                 <div class="modal-body text-center pt-2">
@@ -477,13 +484,13 @@ border-radius:10px; line-height:1.8;">
                                         (Vocal)</p>
                                     <audio controls style="width: 100%;">
 
-                                        <source src="<?= htmlspecialchars($row['vocal']) ?>" type="audio/mpeg">
+                                        <source src="<?= htmlspecialchars($row['vocal'] ?? '') ?>" type="audio/mpeg">
                                         Your browser does not support the audio element.
 
                                     </audio>
                                 </div>
                                 <div class="modal-footer border-0 pt-0">
-                                    <button type="button" class="btn btn-danger" data-bs-dismiss="modal"><b><i              
+                                    <button type="button" class="btn btn-danger" data-bs-dismiss="modal"><b><i              
                                                 class="uil uil-times-square"></i>
                                             Close</b></button>
                                 </div>
@@ -524,7 +531,8 @@ include('fff.php');
     // ખાતરી કરો કે DOM સંપૂર્ણપણે લોડ થઈ ગયો છે
     document.addEventListener('DOMContentLoaded', () => {
 
-
+        // Dynamically get the base URL for JavaScript requests
+        var baseUrl = window.location.origin + '/SIngIT/flutter_crud/';
 
         // Instrumental Track Modal: Pauses audio when modal is closed
         $('#instrumentalModal').on('hidden.bs.modal', function () {
@@ -538,107 +546,107 @@ include('fff.php');
             $(this).find('audio')[0].pause();
         });
 
-    });
 
-    // --- SweetAlert Logic for Delete ---
+        // --- SweetAlert Logic for Delete ---
 
-    // Helper function to display error alerts
-    function showErrorAlert(message) {
-        swal({
-            title: "Error",
-            text: message,
-            type: "error",
-            confirmButtonClass: "btn btn-danger",
-            confirmButtonText: "Ok",
-        });
-    }
-
-    // Function to extract the Song ID from the delete link's href
-    function extractSongId(url) {
-        var match = url.match(/[?&]sid=(\d+)/);
-        return match ? match[1] : null;
-    }
-
-
-    // Handler for the delete button click
-    $('.delete-song-alert').on('click', function (e) {
-        e.preventDefault();
-
-        var deleteUrl = $(this).attr('href');
-        var sid_value = $(this).data('sid'); // Use the data-sid attribute for robustness
-
-        if (!sid_value) {
-            // Fallback to extract from URL if data-sid is missing
-            sid_value = extractSongId(deleteUrl);
-            if (!sid_value) {
-                showErrorAlert("Song ID not found for deletion.");
-                return;
-            }
+        // Helper function to display error alerts
+        function showErrorAlert(message) {
+            swal({
+                title: "Error",
+                text: message,
+                type: "error",
+                confirmButtonClass: "btn btn-danger",
+                confirmButtonText: "Ok",
+            });
         }
 
-        // Main Confirmation Pop-up
-        swal({
-            title: "Are you sure?",
-            text: "You will not be able to recover this song!",
-            type: "warning",
-            showCancelButton: true,
-            confirmButtonClass: "btn btn-danger",
-            confirmButtonText: "Yes, delete it!",
-            cancelButtonText: "No, cancel plx!",
-            closeOnConfirm: false,
-            closeOnCancel: false
-        },
-            function (isConfirm) {
-                if (isConfirm) {
-                    swal({
-                        title: "Deleting...",
-                        text: "Please wait while we delete the song.",
-                        type: "info",
-                        showConfirmButton: false,
-                    });
+        // Function to extract the Song ID from the delete link's href
+        function extractSongId(url) {
+            var match = url.match(/[?&]sid=(\d+)/);
+            return match ? match[1] : null;
+        }
 
-                    // AJAX Call to deleteSong.php
-                    $.ajax({
-                        url: 'http://localhost/SIngIT/flutter_crud/deleteSong.php', // Song Delete API
-                        type: 'POST',
-                        data: {
-                            sid: sid_value
-                        },
-                        dataType: 'json',
-                        success: function (response) {
-                            if (response.status === 'success') {
-                                swal({
-                                    title: "Deleted!",
-                                    text: response.message,
-                                    type: "success",
-                                    showConfirmButton: false,
-                                    timer: 2000
-                                });
 
-                                setTimeout(function () {
-                                    // Reloading the page or redirecting to the view_songs list
-                                    window.location.href = 'view_songs.php';
-                                }, 2000);
+        // Handler for the delete button click
+        $('.delete-song-alert').on('click', function (e) {
+            e.preventDefault();
 
-                            } else {
-                                showErrorAlert(response.message);
-                            }
-                        },
-                        error: function (xhr, status, error) {
-                            showErrorAlert(
-                                "Server error or connection failed. Please check the network.");
-                        }
-                    });
+            var deleteUrl = $(this).attr('href');
+            var sid_value = $(this).data('sid'); // Use the data-sid attribute for robustness
 
-                } else {
-                    swal({
-                        title: "Cancelled",
-                        text: "Your song is safe :)",
-                        type: "error",
-                        showConfirmButton: false,
-                        timer: 2000
-                    });
+            if (!sid_value) {
+                // Fallback to extract from URL if data-sid is missing
+                sid_value = extractSongId(deleteUrl);
+                if (!sid_value) {
+                    showErrorAlert("Song ID not found for deletion.");
+                    return;
                 }
-            });
+            }
+
+            // Main Confirmation Pop-up
+            swal({
+                title: "Are you sure?",
+                text: "You will not be able to recover this song!",
+                type: "warning",
+                showCancelButton: true,
+                confirmButtonClass: "btn btn-danger",
+                confirmButtonText: "Yes, delete it!",
+                cancelButtonText: "No, cancel plx!",
+                closeOnConfirm: false,
+                closeOnCancel: false
+            },
+                function (isConfirm) {
+                    if (isConfirm) {
+                        swal({
+                            title: "Deleting...",
+                            text: "Please wait while we delete the song.",
+                            type: "info",
+                            showConfirmButton: false,
+                        });
+
+                        // AJAX Call to deleteSong.php (Updated with baseUrl)
+                        $.ajax({
+                            url: baseUrl + 'deleteSong.php', // Song Delete API
+                            type: 'POST',
+                            data: {
+                                sid: sid_value
+                            },
+                            dataType: 'json',
+                            success: function (response) {
+                                if (response.status === 'success') {
+                                    swal({
+                                        title: "Deleted!",
+                                        text: response.message,
+                                        type: "success",
+                                        showConfirmButton: false,
+                                        timer: 2000
+                                    });
+
+                                    setTimeout(function () {
+                                        // Reloading the page or redirecting to the view_songs list
+                                        window.location.href = 'view_songs.php';
+                                    }, 2000);
+
+                                } else {
+                                    showErrorAlert(response.message);
+                                }
+                            },
+                            error: function (xhr, status, error) {
+                                showErrorAlert(
+                                    "Server error or connection failed. Please check the network.");
+                            }
+                        });
+
+                    } else {
+                        swal({
+                            title: "Cancelled",
+                            text: "Your song is safe :)",
+                            type: "error",
+                            showConfirmButton: false,
+                            timer: 2000
+                        });
+                    }
+                });
+        });
     });
 </script>

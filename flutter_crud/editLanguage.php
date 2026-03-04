@@ -37,14 +37,14 @@ if (isset($_POST["update"])) {
     if (!$lid || !is_numeric($lid)) {
         $_SESSION['status'] = 'error';
         $_SESSION['message'] = 'Invalid Language ID provided.';
-        header("location:" . $baseUrl . "view_languages.php"); // Redirect to view_languages
+        header("location:" . $baseUrl . "view_language.php"); // Redirect to view_language
         exit;
     }
 
     if (empty($name)) {
         $_SESSION['status'] = 'error';
         $_SESSION['message'] = 'Language Name is required.';
-        header("location:" . $baseUrl . "edit_languages.php?lid=" . $lid); // Redirect to edit_languages with lid
+        header("location:" . $baseUrl . "edit_languages.php?lid=" . $lid); // Redirect to edit_language with lid
         exit;
     }
 
@@ -63,7 +63,7 @@ if (isset($_POST["update"])) {
         } catch (Exception $e) {
             $_SESSION['status'] = 'error';
             $_SESSION['message'] = '❌ Image upload failed: ' . $e->getMessage();
-            header("location:" . $baseUrl . "edit_languages.php?lid=" . $lid); // Redirect to edit_languages with lid
+            header("location:" . $baseUrl . "edit_language.php?lid=" . $lid); // Redirect to edit_language with lid
             exit;
         }
     }
@@ -84,21 +84,21 @@ if (isset($_POST["update"])) {
     if (mysqli_query($con, $qry)) {
         $_SESSION['status'] = 'success';
         $_SESSION['message'] = 'Language has been successfully updated!';
-        header("location:" . $baseUrl . "view_languages.php"); // Redirect to view_languages
+        header("location:" . $baseUrl . "view_language.php"); // Redirect to view_language
     } else {
         $_SESSION['status'] = 'error';
         $_SESSION['message'] = 'Database update failed: ' . mysqli_error($con);
-        header("location:" . $baseUrl . "edit_languages.php?lid=" . $lid); // Redirect to edit_languages with lid
+        header("location:" . $baseUrl . "edit_language.php?lid=" . $lid);
     }
     exit;
 
 } elseif (isset($_POST["view"])) {
     // Handle "View" button submission
-    header("location:" . $baseUrl . "view_languages.php"); // Redirect to view_languages
+    header("location:" . $baseUrl . "view_language.php");
     exit;
 } else {
     // If accessed without proper POST data
-    header("location:" . $baseUrl . "view_languages.php"); // Redirect to view_languages
+    header("location:" . $baseUrl . "view_language.php");
     exit;
 }
 ?>

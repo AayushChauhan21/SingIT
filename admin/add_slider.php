@@ -4,27 +4,28 @@ include('hhh.php');
 include('connection.php');
 error_reporting(1);
 
-$default_img_path = 'favicon_1.png'; // Default path assumption
+$default_img_path = 'favicon_1.png';
 
-// 1. ⚡ Databaseથી હાલમાં Sliderમાં રહેલા Songsની ID Fetch કરો
-$current_slider_sids = []; // Array to store SIDs currently in the slider table
-$sliderQry = mysqli_query($con, "SELECT sid FROM slider"); // Assuming 'sid' is the correct column
+// 1. ⚡ Fetch current SIDs from DB
+$current_slider_sids = [];
+$sliderQry = mysqli_query($con, "SELECT sid FROM slider");
 if ($sliderQry) {
     while ($row = mysqli_fetch_assoc($sliderQry)) {
-        // Store all current SIDs as strings (E.g., "2", "3", "9")
         $current_slider_sids[] = (string) $row['sid'];
     }
 }
 
-// Prepare data for the hidden input field
 $current_sids_csv = implode(',', $current_slider_sids);
-// Prepare data for JS array initialization
 $current_sids_json = json_encode($current_slider_sids);
 
-// 2. 🔹 Fetch ALL Songs from API (for selection list)
-$songsApiUrl = "http://localhost/SIngIT/flutter_crud/getSongs.php";
-$all_songs = [];
+// 2. 🔹 Fetch ALL Songs from API using Relative Path Logic
+// Note: file_get_contents needs a full URL to execute PHP. 
+// We build it dynamically based on your current server address.
+$protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? "https://" : "http://";
+$host = $_SERVER['HTTP_HOST'];
+$songsApiUrl = $protocol . $host . "/SIngIT/flutter_crud/getSongs.php"; 
 
+$all_songs = [];
 $response = @file_get_contents($songsApiUrl);
 if ($response !== FALSE) {
     $all_songs = json_decode($response, true);
@@ -34,55 +35,24 @@ if ($response !== FALSE) {
 }
 ?>
 
-
 <link rel="stylesheet" href="https://unicons.iconscout.com/release/v4.0.0/css/line.css">
-
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
 <style>
-/* ... (CSS remains the same) ... */
 .checkbox-item input[type="checkbox"] {
     margin-right: 10px;
     width: 18px;
     height: 18px;
     accent-color: #AA62C7;
 }
-
-form {
-    background-color: white;
-    border-radius: 20px;
-}
-
-h1 {
-    border-radius: 10px;
-}
-
-.input {
-    border-radius: 10px;
-    height: 40px;
-    color: black;
-
-}
-
-.btn-lg {
-    padding: 0rem 3rem;
-    font-size: 0.875rem;
-    border-radius: 10px;
-}
-
-#gradient {
-    background: linear-gradient(135deg, #6259ca, #ff6ec4);
-}
-
-.error {
-    color: red;
-    font-size: 14px;
-    margin-top: 5px;
-    display: none;
-}
-
+form { background-color: white; border-radius: 20px; }
+h1 { border-radius: 10px; }
+.input { border-radius: 10px; height: 40px; color: black; }
+.btn-lg { padding: 0rem 3rem; font-size: 0.875rem; border-radius: 10px; }
+#gradient { background: linear-gradient(135deg, #6259ca, #ff6ec4); }
+.error { color: red; font-size: 14px; margin-top: 5px; display: none; }
 #custom-dropdown-header {
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    border: 1px solid #ddd;
     padding: 10px;
     border-radius: 8px;
     cursor: pointer;
@@ -91,39 +61,19 @@ h1 {
     justify-content: space-between;
     align-items: center;
 }
-
 #custom-dropdown-list {
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    border: 1px solid #ddd;
     border-top: none;
-    max-height: 200px;
+    max-height: 250px;
     overflow-y: auto;
     border-radius: 0 0 8px 8px;
     padding: 10px;
     display: none;
 }
-
-.checkbox-item {
-    display: flex;
-    align-items: center;
-    padding: 5px 0;
-}
-
-.checkbox-item input[type="checkbox"] {
-    margin-right: 10px;
-    width: 18px;
-    height: 18px;
-}
-
-.checkbox-item img {
-    margin-right: 10px;
-    border-radius: 3px;
-}
-
-.selection-summary {
-    font-size: 14px;
-    color: #5b478d;
-}
+.checkbox-item { display: flex; align-items: center; padding: 5px 0; cursor: pointer; }
+.checkbox-item img { margin-right: 10px; border-radius: 4px; object-fit: cover; }
 </style>
+
 <div class="page-header">
     <div>
         <h2 class="main-content-title tx-24 mg-b-5">Add/Edit Slider</h2>
@@ -135,7 +85,7 @@ h1 {
 </div>
 
 <div class="col-md-6 m-auto d-block">
-    <form action="http://localhost/SIngIT/flutter_crud/addSlider.php" method="post" id="form1"
+    <form action="../flutter_crud/addSlider.php" method="post" id="form1"
         class="mb-4 mt-5 font-weight-bold border bg-white p-5 shadow">
 
         <h1 class="text-center text-light font-weight-bold p-3" id="gradient">
@@ -154,27 +104,23 @@ h1 {
         </div>
 
         <div id="custom-dropdown-list">
-            <?php if (!empty($all_songs) && is_array($all_songs)): ?>
-
-            <?php foreach ($all_songs as $song):
+            <?php if (!empty($all_songs)): ?>
+                <?php foreach ($all_songs as $song):
                     $poster_src = htmlspecialchars($song['image'] ?? $default_img_path);
                     $song_id = htmlspecialchars($song['sid'] ?? '');
                     $song_name = htmlspecialchars($song['name'] ?? 'Unknown Song');
-
-                    // 💡 PRE-SELECTION LOGIC: Check if this song is currently in the slider table
                     $is_checked = in_array($song_id, $current_slider_sids);
-                    ?>
-            <label class="checkbox-item">
-                <input type="checkbox" name="selected_songs[]" value="<?= $song_id ?>" data-name="<?= $song_name ?>"
-                    class="song-checkbox" <?= $is_checked ? 'checked' : '' ?>>
-                <img src="<?= $poster_src ?>" height="30" width="30" alt="Poster">
-                <span><?= $song_name ?></span>
-            </label>
-            <?php endforeach; ?>
+                ?>
+                <label class="checkbox-item">
+                    <input type="checkbox" value="<?= $song_id ?>" 
+                        class="song-checkbox" <?= $is_checked ? 'checked' : '' ?>>
+                    <img src="<?= $poster_src ?>" height="30" width="30" alt="Poster">
+                    <span><?= $song_name ?></span>
+                </label>
+                <?php endforeach; ?>
             <?php else: ?>
-            <p class="text-danger">Error: Could not load songs or no songs found from API.</p>
+                <p class="text-danger">No songs found.</p>
             <?php endif; ?>
-
         </div>
 
         <span class="error" id="selectionError">⚠️ Select at least one song.</span>
@@ -183,83 +129,31 @@ h1 {
         <center>
             <input type="submit" value="Update Slider" name="insert" id="insert"
                 class="btn btn-outline-primary btn-lg input" />
-            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
         </center>
     </form>
-    <br>
 </div>
 
-
 <script>
-// --- JS for Multi-Select Dropdown Logic ---
 const dropdownHeader = document.getElementById('custom-dropdown-header');
 const dropdownList = document.getElementById('custom-dropdown-list');
 const selectionSummary = document.getElementById('selectionSummary');
 const selectedSongSidListInput = document.getElementById('selected_song_sid_list');
-const selectionError = document.getElementById("selectionError");
 
-// 🔑 JS Initialization FIX: selectedSids array is now initialized with PHP data
 let selectedSids = <?= $current_sids_json ?>;
 
-// 1. Ensure elements are hidden on page load
-$(document).ready(function() {
-    selectionError.style.display = 'none';
-
-    // 🔑 Initialization FIX: Set initial summary count based on the initialized array
-    selectionSummary.textContent = `${selectedSids.length} Selected`;
-});
-
-// 2. Toggle dropdown visibility
 dropdownHeader.addEventListener('click', () => {
     $(dropdownList).slideToggle(200);
-
-    // Clear error state when the user interacts with the dropdown
-    selectionError.textContent = "⚠️ Select at least one song.";
-    selectionError.style.display = 'none'; // Hide error text
 });
 
-// 3. Handle checkbox changes
 $('#custom-dropdown-list').on('change', '.song-checkbox', function() {
     const sid = this.value;
-
     if (this.checked) {
-        if (selectedSids.indexOf(sid) === -1) {
-            selectedSids.push(sid);
-        }
+        if (!selectedSids.includes(sid)) selectedSids.push(sid);
     } else {
         selectedSids = selectedSids.filter(s => s !== sid);
     }
-
-    // Crucial: Update the hidden input field with the comma-separated list
     selectedSongSidListInput.value = selectedSids.join(',');
     selectionSummary.textContent = `${selectedSids.length} Selected`;
-
-    // Clear error state immediately upon successful selection change
-    selectionError.textContent = "⚠️ Select at least one song.";
-    selectionError.style.display = 'none'; // Hide error text
-});
-
-
-// 4. Form Submission Validation (Runs ONLY on Insert/Update button click)
-document.getElementById("form1").addEventListener("submit", function(e) {
-    let valid = true;
-
-    // Reset errors visually before check
-    selectionError.textContent = "⚠️ Select at least one song.";
-    selectionError.style.display = 'none';
-
-    if (e.submitter && e.submitter.name === "insert") {
-        // If you want to force at least one song selected:
-        // if (selectedSids.length === 0) {
-        //     selectionError.style.display = 'block';
-        //     valid = false;
-        // }
-
-        // We allow submission of 0 songs, as the backend (addSlider.php) will clear the slider.
-        if (!valid) {
-            e.preventDefault();
-        }
-    }
 });
 </script>
 

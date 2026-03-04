@@ -1,4 +1,8 @@
 <script>
+    // --- Base URL Setup ---
+    // Dynamically gets http://localhost or https://yourlivewebsite.com
+    var baseUrl = window.location.origin + '/SIngIT/flutter_crud/';
+
     // --- SweetAlert Helper Functions ---
     function showSuccessAlert(msg) {
         swal({
@@ -137,10 +141,10 @@
     // ------------------------------------------------------------------
     $(document).ready(function () {
 
-    // --- Session Status Check Logic (જેમ છે તેમ) ---
-    <?php if (isset($_SESSION['status'])): ?>
+        // --- Session Status Check Logic (જેમ છે તેમ) ---
+        <?php if (isset($_SESSION['status'])): ?>
 
-        var status = '<?php echo $_SESSION['status']; ?>';
+            var status = '<?php echo $_SESSION['status']; ?>';
             var message = '<?php echo addslashes($_SESSION['message']); ?>';
 
             if (status === 'success') {
@@ -149,40 +153,32 @@
                 showErrorAlert(message);
             }
 
-        <?php unset($_SESSION['status']); ?>
-                <?php unset($_SESSION['message']); ?>
+            <?php unset($_SESSION['status']); ?>
+            <?php unset($_SESSION['message']); ?>
 
-                <?php endif; ?>
+        <?php endif; ?>
 
-    // ------------------------------------------------------------------
-    // --- Setting up Delete Logic for All Entities ---
-    // ------------------------------------------------------------------
+        // ------------------------------------------------------------------
+        // --- Setting up Delete Logic for All Entities ---
+        // ------------------------------------------------------------------
 
-    // A) SONG DELETE LOGIC (Normal Songs)
-    setupDeleteLogic('.song_table', '.song-delete-btn', 'http://localhost/SIngIT/flutter_crud/deleteSong.php',
-                    extractSongId, 'Song');
+        // A) SONG DELETE LOGIC (Normal Songs)
+        setupDeleteLogic('.song_table', '.song-delete-btn', baseUrl + 'deleteSong.php', extractSongId, 'Song');
 
         // B) ARTIST DELETE LOGIC
-        setupDeleteLogic('.artist_table', '.artist-delete-btn',
-            'http://localhost/SIngIT/flutter_crud/deleteArtist.php', extractArtistId, 'Artist');
+        setupDeleteLogic('.artist_table', '.artist-delete-btn', baseUrl + 'deleteArtist.php', extractArtistId, 'Artist');
 
         // C) GENRE DELETE LOGIC
-        setupDeleteLogic('.genre_table', '.genre-delete-btn',
-            'http://localhost/SIngIT/flutter_crud/deleteGenre.php', extractGenreId, 'Genre');
+        setupDeleteLogic('.genre_table', '.genre-delete-btn', baseUrl + 'deleteGenre.php', extractGenreId, 'Genre');
 
         // D) LANGUAGE DELETE LOGIC
-        setupDeleteLogic('.language_table', '.language-delete-btn',
-            'http://localhost/SIngIT/flutter_crud/deleteLanguage.php', extractLanguageId, 'Language');
+        setupDeleteLogic('.language_table', '.language-delete-btn', baseUrl + 'deleteLanguage.php', extractLanguageId, 'Language');
 
         // E) SLIDER DELETE LOGIC
-        setupDeleteLogic('.slider_table', '.slider-delete-btn',
-            'http://localhost/SIngIT/flutter_crud/deleteSlider.php', extractSliderId, 'Slider');
+        setupDeleteLogic('.slider_table', '.slider-delete-btn', baseUrl + 'deleteSlider.php', extractSliderId, 'Slider');
 
-        // 🟢 F) SPECIAL SONG DELETE LOGIC (આ તમારો નવો કૉલ છે)
-        // Note: Special Songs View uses: .special_table (container) and .special-delete-btn (button)
-        // We assume deleteSong.php handles the actual deletion based on 'sid'.
-        setupDeleteLogic('.special_table', '.special-delete-btn',
-            'http://localhost/SIngIT/flutter_crud/deleteSong.php', extractSongId, 'Special Song');
+        // 🟢 F) SPECIAL SONG DELETE LOGIC
+        setupDeleteLogic('.special_table', '.special-delete-btn', baseUrl + 'deleteSong.php', extractSongId, 'Special Song');
 
     });
 </script>

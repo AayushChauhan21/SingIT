@@ -7,7 +7,11 @@ include('connection.php'); // Used for session management or other internal logi
 
 error_reporting(1);
 
-$apiUrl = "http://localhost/SIngIT/flutter_crud/getGenres.php";
+// --- Dynamic URL Logic ---
+$protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? "https://" : "http://";
+$base_url = $protocol . $_SERVER['HTTP_HOST'] . "/SIngIT/flutter_crud/";
+
+$apiUrl = $base_url . "getGenres.php";
 $genres = [];
 
 $response = @file_get_contents($apiUrl);
@@ -24,6 +28,9 @@ if ($response !== FALSE) {
 <style>
     .btn-md {
         font-size: 20px;
+    }
+    .genre-delete-btn {
+        cursor: pointer;
     }
 </style>
 
@@ -59,24 +66,27 @@ if ($response !== FALSE) {
                         </thead>
                         <tbody>
                             <?php if (!empty($genres) && count($genres) > 0): ?>
-                                <?php foreach ($genres as $row): ?>
+                                <?php foreach ($genres as $row): 
+                                    // Fallback for image
+                                    $img_src = !empty($row['image']) ? htmlspecialchars($row['image']) : 'assets/img/transparent_placeholder.png';
+                                ?>
                                     <tr class="text text-center">
-                                        <td>
-                                            <img src='<?= htmlspecialchars($row['image']) ?>' class='rounded' height="38"
-                                                width="60" alt="Genre Image">
+                                        <td class="align-middle">
+                                            <img src='<?= $img_src ?>' class='rounded' height="38"
+                                                width="60" style="object-fit: cover;" alt="Genre Image">
                                         </td>
-                                        <td>
+                                        <td class="align-middle">
                                             <?= htmlspecialchars($row['name']) ?>
                                         </td>
-                                        <td>
+                                        <td class="align-middle">
                                             <a href='view_genre_details.php?gid=<?= htmlspecialchars($row['gid']) ?>'><i
                                                     class='uil uil-eye btn btn-md btn-primary'></i></a>
                                         </td>
-                                        <td>
+                                        <td class="align-middle">
                                             <a href="edit_genres.php?gid=<?= htmlspecialchars($row['gid']) ?>"><i
                                                     class="uil uil-pen btn btn-md btn-success"></i></a>
                                         </td>
-                                        <td>
+                                        <td class="align-middle">
                                             <a href='delete.php?gid=<?= htmlspecialchars($row['gid']) ?>'
                                                 class="genre-delete-btn" data-gid="<?= htmlspecialchars($row['gid']) ?>">
                                                 <i class='uil uil-trash-alt btn btn-md btn-danger'></i>
@@ -196,7 +206,8 @@ include('fff.php');
 
                         // 2. AJAX Call to deleteGenre.php
                         $.ajax({
-                            url: 'http://localhost/SIngIT/flutter_crud/deleteGenre.php',
+                            // URL Updated to relative path
+                            url: '../flutter_crud/deleteGenre.php',
                             type: 'POST',
                             data: {
                                 gid: gid_value
@@ -206,8 +217,7 @@ include('fff.php');
                                 if (response.status === 'success') {
                                     swal({
                                         title: "Deleted!",
-                                        text: response.message ||
-                                            "Genre deleted successfully.",
+                                        text: response.message || "Genre deleted successfully.",
                                         type: "success",
                                         showConfirmButton: false,
                                         timer: 2000
@@ -219,14 +229,11 @@ include('fff.php');
                                     }, 2000);
 
                                 } else {
-                                    showErrorAlert(response.message ||
-                                        "Failed to delete genre. Please try again.");
+                                    showErrorAlert(response.message || "Failed to delete genre. Please try again.");
                                 }
                             },
                             error: function (xhr, status, error) {
-                                showErrorAlert(
-                                    "Server error or connection failed. Deletion failed."
-                                );
+                                showErrorAlert("Server error or connection failed. Deletion failed.");
                             }
                         });
 

@@ -6,7 +6,13 @@ include('connection.php');
 
 error_reporting(1);
 
-$apiUrl = "http://localhost/SIngIT/flutter_crud/getSongs.php";
+// Dynamically determine protocol (http or https) and host
+$protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http";
+$host = $_SERVER['HTTP_HOST'];
+
+// Build the URL dynamically so it works on localhost AND live servers
+$apiUrl = $protocol . "://" . $host . "/SIngIT/flutter_crud/getSongs.php";
+
 $songs = [];
 
 $response = @file_get_contents($apiUrl);
@@ -98,7 +104,6 @@ if ($response !== FALSE) {
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>
-
                             <?php endif; ?>
                         </tbody>
                     </table>
@@ -112,11 +117,6 @@ include('fff.php');
 // Yahaan DataTables, jQuery, aur SweetAlert ki files include honi chahiye
 ?>
 
-
-
-
-
-<!-- INTERNAL DATA TABLE JS -->
 <script src="assets/plugins/datatable/js/jquery.dataTables.min.js"></script>
 <script src="assets/plugins/datatable/js/dataTables.bootstrap5.js"></script>
 <script src="assets/plugins/datatable/js/dataTables.buttons.min.js"></script>
@@ -132,14 +132,6 @@ include('fff.php');
 <script src="assets/js/table-data.js"></script>
 <script src="assets/js/select2.js"></script>
 
-<!-- INTERNAL SWEET-ALERT JS -->
-<!-- <script src="assets/plugins/sweet-alert/sweetalert.min.js"></script>
-<script src="assets/plugins/sweet-alert/jquery.sweet-alert.js"></script>
- -->
-
 <script>
 
 </script>
-
-
-<!-- <script src="assets/js_sweet_alert/deleteSong.js"></script> -->

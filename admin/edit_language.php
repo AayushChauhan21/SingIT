@@ -117,7 +117,7 @@ if (isset($_SESSION['langPhotoError']))
 
 <div class="col-md-6 m-auto d-block">
     <form id="form1" enctype="multipart/form-data" method="post"
-        action="http://localhost/SIngIT/flutter_crud/editLanguage.php"
+        action="../flutter_crud/editLanguage.php"
         class="mb-4 mt-5 font-weight-bold border bg-white p-5 shadow">
         <h1 class="text-center text-light font-weight-bold p-3" id="gradient">
             <strong>Language Form</strong>

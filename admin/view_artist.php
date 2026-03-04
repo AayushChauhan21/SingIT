@@ -3,17 +3,26 @@ include('demo.php');
 include('hhh.php');
 include('connection.php');
 
-$apiUrl = "http://localhost/SIngIT/flutter_crud/getArtists.php"; // API
-$response = file_get_contents($apiUrl);
-$artists = json_decode($response, true);
+// --- Dynamic URL Logic ---
+$protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? "https://" : "http://";
+$base_url = $protocol . $_SERVER['HTTP_HOST'] . "/SIngIT/flutter_crud/";
 
+$apiUrl = $base_url . "getArtists.php"; 
+
+// Use @ to suppress warnings if the API is down, and default to an empty array
+$response = @file_get_contents($apiUrl);
+$artists = $response ? json_decode($response, true) : [];
+if (!is_array($artists)) {
+    $artists = [];
+}
 ?>
-
-<!-- <link rel="stylesheet" href="style_adm.css"> -->
 
 <style>
     .btn-md {
         font-size: 20px;
+    }
+    .artist-delete-btn {
+        cursor: pointer;
     }
 </style>
 
@@ -25,20 +34,14 @@ $artists = json_decode($response, true);
             <li class="breadcrumb-item active" aria-current="page">View Artists</li>
         </ol>
     </div>
-
 </div>
 
-<!-- Row -->
 <div class="row row-sm">
     <div class="col-lg-12">
         <div class="card custom-card overflow-hidden">
             <div class="card-body">
                 <div>
                     <h6 class="main-content-label mb-1">Artist</h6><br>
-                    <!-- <p class="text-muted card-sub-title">Exporting data from a table can often be a
-                        key part of a complex application. The Buttons extension for DataTables
-                        provides three plug-ins that provide overlapping functionality for data
-                        export:</p> -->
                 </div>
                 <div class="table-responsive">
                     <table id="exportexample"
@@ -53,28 +56,27 @@ $artists = json_decode($response, true);
                             </tr>
                         </thead>
                         <tbody>
-                            <?php foreach ($artists as $row): ?>
+                            <?php foreach ($artists as $row): 
+                                // Image fallback logic
+                                $photo_src = !empty($row['photo']) ? htmlspecialchars($row['photo']) : 'assets/img/default_profile.png';
+                            ?>
                                 <tr class="text text-center">
-                                    <!-- echo "<td><image src='./images/" . $row['image'] . "'class='rounded' height=50 width=50></td>"; -->
-
                                     <td>
-                                        <img src='<?= htmlspecialchars($row['photo']) ?>'
+                                        <img src='<?= $photo_src ?>'
                                             style='height: 60px; width: 45px; object-fit: cover;' class='rounded'>
                                     </td>
-                                    <td>
-                                        <?= htmlspecialchars($row['name']) ?>
+                                    <td class="align-middle">
+                                        <?= htmlspecialchars($row['name'] ?? 'Unknown') ?>
                                     </td>
-                                    <td>
-                                        <?php echo "<a href='view_artist_details.php?arid=$row[arid]'><i class='uil uil-eye btn btn-md btn-primary'></i></a>"; ?>
+                                    <td class="align-middle">
+                                        <a href='view_artist_details.php?arid=<?= $row['arid'] ?>'><i class='uil uil-eye btn btn-md btn-primary'></i></a>
                                     </td>
-                                    <td>
-                                        <a href='edit_artist.php?arid=<?= $row['arid'] ?>'><i
-                                                class='uil uil-pen btn btn-md btn-success'></i></a>
+                                    <td class="align-middle">
+                                        <a href='edit_artist.php?arid=<?= $row['arid'] ?>'><i class='uil uil-pen btn btn-md btn-success'></i></a>
                                     </td>
-                                    <td>
-                                        <a href='delete.php?arid=<?= htmlspecialchars($row['arid']) ?>'
-                                            class="artist-delete-btn"> <i
-                                                class='uil uil-trash-alt btn btn-md btn-danger'></i>
+                                    <td class="align-middle">
+                                        <a href='delete.php?arid=<?= $row['arid'] ?>' class="artist-delete-btn" data-arid="<?= $row['arid'] ?>"> 
+                                            <i class='uil uil-trash-alt btn btn-md btn-danger'></i>
                                         </a>
                                     </td>
                                 </tr>
@@ -86,21 +88,13 @@ $artists = json_decode($response, true);
         </div>
     </div>
 </div>
-<!-- End Row -->
-
-
 </div>
 </div>
 </div>
-<!-- END MAIN-CONTENT -->
-
-<!-- RIGHT-SIDEBAR -->
-
 <?php
 include('fff.php');
 ?>
 
-<!-- INTERNAL DATA TABLE JS -->
 <script src="assets/plugins/datatable/js/jquery.dataTables.min.js"></script>
 <script src="assets/plugins/datatable/js/dataTables.bootstrap5.js"></script>
 <script src="assets/plugins/datatable/js/dataTables.buttons.min.js"></script>
@@ -115,3 +109,89 @@ include('fff.php');
 <script src="assets/plugins/datatable/responsive.bootstrap5.min.js"></script>
 <script src="assets/js/table-data.js"></script>
 <script src="assets/js/select2.js"></script>
+
+<script>
+$(document).ready(function() {
+    function showErrorAlert(message) {
+        swal({
+            title: "Error",
+            text: message,
+            type: "error",
+            confirmButtonClass: "btn btn-danger",
+            confirmButtonText: "Ok",
+        });
+    }
+
+    $('.artist-delete-btn').on('click', function(e) {
+        e.preventDefault();
+        
+        var arid_value = $(this).data('arid'); 
+
+        if (!arid_value) {
+            showErrorAlert("Artist ID not found for deletion.");
+            return;
+        }
+
+        swal({
+            title: "Are you sure?",
+            text: "You will not be able to recover this artist and associated songs!",
+            type: "warning",
+            showCancelButton: true,
+            confirmButtonClass: "btn btn-danger",
+            confirmButtonText: "Yes, delete it!",
+            cancelButtonText: "No, cancel plx!",
+            closeOnConfirm: false,
+            closeOnCancel: false
+        },
+        function(isConfirm) {
+            if (isConfirm) {
+                swal({
+                    title: "Deleting...",
+                    text: "Please wait while we delete the artist.",
+                    type: "info",
+                    showConfirmButton: false,
+                });
+
+                $.ajax({
+                    // Dynamic relative path to your delete API
+                    url: '../flutter_crud/deleteArtist.php',
+                    type: 'POST',
+                    data: { arid: arid_value },
+                    dataType: 'json',
+                    success: function(response) {
+                        if (response.status === 'success') {
+                            swal({
+                                title: "Deleted!",
+                                text: response.message,
+                                type: "success",
+                                showConfirmButton: false,
+                                timer: 1500
+                            });
+
+                            // Reload the page to refresh the datatable
+                            setTimeout(function() {
+                                window.location.reload();
+                            }, 1500);
+
+                        } else {
+                            showErrorAlert(response.message || "Failed to delete artist.");
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        showErrorAlert("Server error or connection failed. Please check the network and API URL.");
+                    }
+                });
+
+            } else {
+                swal({
+                    title: "Cancelled",
+                    text: "Your artist is safe :)",
+                    type: "error",
+                    showConfirmButton: false,
+                    timer: 1500
+                });
+            }
+        });
+    });
+});
+</script>

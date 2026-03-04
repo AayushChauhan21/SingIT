@@ -5,10 +5,15 @@ include('connection.php');
 error_reporting(1);
 
 // Define a default image path in case the DB doesn't have one
-$default_img_path = 'favicon_1.png'; // Default path assumption
+$default_img_path = 'favicon_1.png'; 
 
-// 1. 🎵 Fetch Genre Options from API (PHP file_get_contents)
-$genreApiUrl = "http://localhost/SIngIT/flutter_crud/getGenres.php";
+// --- Dynamic URL Construction ---
+$protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? "https://" : "http://";
+$host = $_SERVER['HTTP_HOST'];
+$baseApiUrl = $protocol . $host . "/SingIT/flutter_crud/";
+
+// 1. 🎵 Fetch Genre Options
+$genreApiUrl = $baseApiUrl . "getGenres.php";
 $genreOptions = [];
 $response = @file_get_contents($genreApiUrl);
 if ($response !== FALSE) {
@@ -18,8 +23,8 @@ if ($response !== FALSE) {
     }
 }
 
-// 2. 👤 Fetch Artist Options from API (PHP file_get_contents)
-$artistApiUrl = "http://localhost/SIngIT/flutter_crud/getArtists.php";
+// 2. 👤 Fetch Artist Options
+$artistApiUrl = $baseApiUrl . "getArtists.php";
 $artistOptions = [];
 $response = @file_get_contents($artistApiUrl);
 if ($response !== FALSE) {
@@ -29,8 +34,8 @@ if ($response !== FALSE) {
     }
 }
 
-// 3. 🌐 Fetch Language Options from API (PHP file_get_contents)
-$languageApiUrl = "http://localhost/SIngIT/flutter_crud/getLanguage.php";
+// 3. 🌐 Fetch Language Options
+$languageApiUrl = $baseApiUrl . "getLanguage.php";
 $languageOptions = [];
 $response = @file_get_contents($languageApiUrl);
 if ($response !== FALSE) {
@@ -187,7 +192,7 @@ if ($response !== FALSE) {
 </div>
 
 <div class="col-md-6 m-auto d-block">
-    <form action="http://localhost/SIngIT/flutter_crud/addSongs.php" method="post" enctype="multipart/form-data"    
+    <form action="../flutter_crud/addSongs.php" method="post" enctype="multipart/form-data"    
         id="form1" class="mb-4 mt-5 font-weight-bold border bg-white p-5 shadow">
 
         <h1 class="text-center text-light font-weight-bold p-3" id="gradient">
