@@ -1,0 +1,64 @@
+name: sing_it # Note: Dart package names should generally be lowercase_with_underscores (e.g., sing_it)
+description: "A new Flutter project."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.8.1
+
+dependencies:
+  google_fonts: ^4.0.4
+  flutter:
+    sdk: flutter
+
+  youtube_player_flutter: ^9.1.2
+  carousel_slider: ^4.2.1
+  just_audio: ^0.9.39
+  just_audio_windows: ^0.2.0
+  flutter_sound: ^9.2.13
+  permission_handler: ^11.3.1
+  path_provider: ^2.1.3
+  cupertino_icons: ^1.0.8
+  http: ^0.13.3 # Consider updating this to ^1.1.0 or later
+  shared_preferences: ^2.5.3
+  image_picker: ^1.0.7
+  cloudinary_public: ^0.23.1
+
+  # Note: ffmpeg_kit_flutter and share_plus are missing from your list here,
+  # but were needed for the download functionality discussed earlier.
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+  flutter_launcher_icons: ^0.13.1 # <-- Moved here
+  flutter_native_splash: ^2.3.1
+
+# Main Flutter configuration
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/
+  # Other Flutter settings like fonts would go here
+
+# Launcher Icon Configuration (Top Level)
+flutter_launcher_icons:
+  android: true # Generate icons for Android
+  ios: true     # Generate icons for iOS
+  image_path: "assets/images/icon_foreground.png" # Path to YOUR icon image
+  # Optional: For Android adaptive icons (recommended)
+  adaptive_icon_background: "#FFFFFF" # Color for the background layer
+  adaptive_icon_foreground: "assets/images/icon_foreground.png" # Path to foreground layer image
+
+flutter_native_splash:
+  # Background color (use hex code)
+  color: "#000000" # Black
+
+  # Your app logo (make sure this image exists in your assets folder)
+  image: assets/logo3.jpg
+  
+
+  # Optional: Specifics for Android 12+ (often needed for branding consistency)
+  android_12:
+    color: "#000000" # Black
+    image: assets/images/icon_foreground.png
