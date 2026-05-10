@@ -13,7 +13,7 @@ import 'login.dart';
 import 'profile.dart';
 import 'favourite.dart';
 import 'playlist.dart';
-import 'history.dart'; // Make sure this file exists
+import 'history.dart';
 
 void main() {
   runApp(SingITApp());
@@ -72,15 +72,13 @@ class _TopSectionState extends State<TopSection> {
   String? _userImage;
   bool _isUserDataLoading = true;
 
-  // --- 1. STATE VARIABLES ADDED ---
   List _historySongs = [];
   bool _isHistoryLoading = true;
   List _genreSections = [];
   bool _isGenreLoading = true;
-  // --- NEW ---
+
   List _recommendedSongs = [];
   bool _isRecLoading = true;
-  // --- END OF ADDITION ---
 
   @override
   void initState() {
@@ -103,10 +101,9 @@ class _TopSectionState extends State<TopSection> {
     fetchArtists();
     fetchSongs();
     fetchGenreSections();
-    // Note: fetchHistory() & fetchRecommendations() are called inside _loadUserData
   }
 
-  /// 1. Checks SharedPreferences for a user ID
+  // Back to safe, sequential loading
   Future<void> _loadUserData() async {
     final prefs = await SharedPreferences.getInstance();
     final String? userId = prefs.getString('user_id');
@@ -116,11 +113,8 @@ class _TopSectionState extends State<TopSection> {
         _loggedInUserId = userId;
       });
       await _fetchUserData(userId);
-      // Fetch history and recommendations only if user is logged in
       await fetchHistory(userId);
-      // --- 2. FUNCTION CALL ADDED ---
       await fetchRecommendations(userId);
-      // --- END OF ADDITION ---
     } else {
       setState(() {
         _isUserDataLoading = false;
@@ -132,7 +126,6 @@ class _TopSectionState extends State<TopSection> {
     }
   }
 
-  /// 2. Calls your new PHP script
   Future<void> _fetchUserData(String userId) async {
     final url = Uri.parse(
         "${AppConfig.baseUrl}getUserData.php?uid=${Uri.encodeComponent(userId)}");
@@ -164,7 +157,6 @@ class _TopSectionState extends State<TopSection> {
     }
   }
 
-  /// 3. Clears the session and resets the UI
   Future<void> _handleLogout({bool closeDrawer = true}) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('user_id');
@@ -175,13 +167,10 @@ class _TopSectionState extends State<TopSection> {
       _userEmail = "Please log in";
       _userImage = null;
       _isUserDataLoading = false;
-      // Clear user-specific data
       _historySongs = [];
       _isHistoryLoading = true;
-      // --- 3. ADDED ---
       _recommendedSongs = [];
       _isRecLoading = true;
-      // --- END OF ADDITION ---
     });
 
     if (closeDrawer && Navigator.canPop(context)) {
@@ -209,11 +198,7 @@ class _TopSectionState extends State<TopSection> {
             artists = decodedResponse;
             isLoading = false;
           });
-        } else {
-          throw Exception("Invalid format for artists list");
         }
-      } else {
-        throw Exception("Failed to load artists");
       }
     } catch (e) {
       print("Error fetching artists: $e");
@@ -232,11 +217,7 @@ class _TopSectionState extends State<TopSection> {
             songs = decodedResponse;
             isSongsLoading = false;
           });
-        } else {
-          throw Exception("Invalid format for songs list");
         }
-      } else {
-        throw Exception("Failed to load songs");
       }
     } catch (e) {
       print("Error fetching songs: $e");
@@ -255,11 +236,7 @@ class _TopSectionState extends State<TopSection> {
             _genreSections = decodedResponse;
             _isGenreLoading = false;
           });
-        } else {
-          throw Exception("Invalid format for genre list");
         }
-      } else {
-        throw Exception("Failed to load genres");
       }
     } catch (e) {
       print("Error fetching genres: $e");
@@ -286,11 +263,7 @@ class _TopSectionState extends State<TopSection> {
             _historySongs = decodedResponse;
             _isHistoryLoading = false;
           });
-        } else {
-          throw Exception("Invalid format for history list");
         }
-      } else {
-        throw Exception("Failed to load history");
       }
     } catch (e) {
       print("Error fetching history: $e");
@@ -298,7 +271,6 @@ class _TopSectionState extends State<TopSection> {
     }
   }
 
-  // --- 4. NEW FUNCTION ADDED ---
   Future<void> fetchRecommendations(String userId) async {
     if (_loggedInUserId == null) {
       setState(() {
@@ -318,20 +290,14 @@ class _TopSectionState extends State<TopSection> {
             _recommendedSongs = decodedResponse;
             _isRecLoading = false;
           });
-        } else {
-          throw Exception("Invalid format for recommendations list");
         }
-      } else {
-        throw Exception("Failed to load recommendations");
       }
     } catch (e) {
       print("Error fetching recommendations: $e");
       setState(() => _isRecLoading = false);
     }
   }
-  // --- END OF ADDITION ---
 
-  // --- SEARCH METHODS ---
   void _onSearchChanged() {
     setState(() {});
     if (_debounce?.isActive ?? false) _debounce!.cancel();
@@ -371,8 +337,6 @@ class _TopSectionState extends State<TopSection> {
         setState(() {
           _searchResults = combinedResults;
         });
-      } else {
-        throw Exception("Failed to load search results");
       }
     } catch (e) {
       print("Error fetching search results: $e");
@@ -450,18 +414,10 @@ class _TopSectionState extends State<TopSection> {
               const EdgeInsets.symmetric(vertical: 4.0, horizontal: 16.0),
               leading: ClipRRect(
                 borderRadius: BorderRadius.circular(4),
-                child: FadeInImage.assetNetwork(
-                  placeholder: 'assets/placeholder.png',
-                  image: item['image'] ?? '',
+                child: BasicRetryImage(
+                  imageUrl: item['image'] ?? '',
                   width: 55,
                   height: 55,
-                  fit: BoxFit.cover,
-                  imageErrorBuilder: (c, e, s) => Image.asset(
-                    'assets/placeholder.png',
-                    width: 55,
-                    height: 55,
-                    fit: BoxFit.cover,
-                  ),
                 ),
               ),
               title: Column(
@@ -490,9 +446,10 @@ class _TopSectionState extends State<TopSection> {
                   ),
                 ],
               ),
-              subtitle: null, // Subtitle is now part of the Column in title
               onTap: () {
-                _focusNode.unfocus();
+                FocusManager.instance.primaryFocus?.unfocus();
+                _searchController.clear();
+
                 Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -556,20 +513,11 @@ class _TopSectionState extends State<TopSection> {
               contentPadding:
               const EdgeInsets.symmetric(vertical: 4.0, horizontal: 16.0),
               leading: ClipRRect(
-                borderRadius:
-                BorderRadius.circular(27.5), // Make it circular
-                child: FadeInImage.assetNetwork(
-                  placeholder: 'assets/placeholder.png',
-                  image: item['photo']?.toString() ?? '',
+                borderRadius: BorderRadius.circular(27.5),
+                child: BasicRetryImage(
+                  imageUrl: item['photo']?.toString() ?? '',
                   width: 55,
                   height: 55,
-                  fit: BoxFit.cover,
-                  imageErrorBuilder: (c, e, s) => Image.asset(
-                    'assets/placeholder.png',
-                    width: 55,
-                    height: 55,
-                    fit: BoxFit.cover,
-                  ),
                 ),
               ),
               title: Column(
@@ -597,9 +545,10 @@ class _TopSectionState extends State<TopSection> {
                   ),
                 ],
               ),
-              subtitle: null, // Subtitle is now part of the Column in title
               onTap: () {
-                _focusNode.unfocus();
+                FocusManager.instance.primaryFocus?.unfocus();
+                _searchController.clear();
+
                 final artistId = item['arid']?.toString();
                 final artistName = item['name']?.toString();
                 if (artistId != null) {
@@ -613,12 +562,9 @@ class _TopSectionState extends State<TopSection> {
                     ),
                   );
                 } else {
-                  print(
-                      "Error: Artist ID (arid) is missing for ${item['name']}");
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content:
-                      Text('Cannot open artist details. ID missing.'),
+                      content: Text('Cannot open artist details. ID missing.'),
                       backgroundColor: Colors.redAccent,
                     ),
                   );
@@ -646,6 +592,7 @@ class _TopSectionState extends State<TopSection> {
     _searchResults.where((item) => item['type'] == 'song').toList();
     final artistsFound =
     _searchResults.where((item) => item['type'] == 'artist').toList();
+
     if (_searchResults.isEmpty) {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 20.0),
@@ -657,6 +604,7 @@ class _TopSectionState extends State<TopSection> {
         ),
       );
     }
+
     List<dynamic> itemsWithHeaders = [];
     if (songsFound.isNotEmpty) {
       itemsWithHeaders.add("Songs");
@@ -669,8 +617,7 @@ class _TopSectionState extends State<TopSection> {
     return Padding(
       padding: const EdgeInsets.only(top: 16.0, bottom: 20.0),
       child: Container(
-        constraints: BoxConstraints(
-            maxHeight: 400), // Increased height for better scrolling
+        constraints: BoxConstraints(maxHeight: 400),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
         ),
@@ -696,9 +643,7 @@ class _TopSectionState extends State<TopSection> {
       ),
     );
   }
-  // --- END OF SEARCH METHODS ---
 
-  /// Builds the list of genre sections
   Widget _buildGenreSections() {
     if (_isGenreLoading) {
       return Padding(
@@ -710,62 +655,45 @@ class _TopSectionState extends State<TopSection> {
     }
 
     if (_genreSections.isEmpty) {
-      return SizedBox.shrink(); // No genres, show nothing
+      return SizedBox.shrink();
     }
 
-    // Use Column to list genres vertically
     return Column(
-      // Use .asMap().entries to get both the index and the genre
       children: _genreSections.asMap().entries.map((entry) {
         int index = entry.key;
         Map<String, dynamic> genre = entry.value;
 
-        // We need to cast the songs list
         final List songsInGenre = genre['songs'] as List? ?? [];
-        if (songsInGenre.isEmpty) {
-          return SizedBox.shrink(); // Don't show genres with no songs
-        }
+        if (songsInGenre.isEmpty) return SizedBox.shrink();
 
-        // Create a new, sorted list.
-        // We must cast to Map<String, dynamic> for sorting to work.
         final List<Map<String, dynamic>> sortedSongs =
         List<Map<String, dynamic>>.from(songsInGenre);
 
-        // User: odd (1, 3) = asc, even (2, 4) = desc
-        // Index: 0, 2 (even) = asc, 1, 3 (odd) = desc
         if (index % 2 == 0) {
-          // This is the 1st, 3rd, etc. (ODD) genre. Sort ASCENDING.
           sortedSongs.sort((a, b) => (a['name'] ?? '').compareTo(b['name'] ?? ''));
         } else {
-          // This is the 2nd, 4th, etc. (EVEN) genre. Sort DESCENDING.
           sortedSongs.sort((a, b) => (b['name'] ?? '').compareTo(a['name'] ?? ''));
         }
 
-        // Create a new map to pass to the widget, replacing old songs with sorted songs
         final Map<String, dynamic> sortedGenre = Map.from(genre);
         sortedGenre['songs'] = sortedSongs;
 
-        // Now pass this new map to the build widget
         return _buildSingleGenreSection(sortedGenre);
       }).toList(),
     );
   }
 
-
-  /// Builds a single horizontal-scrolling song row for a genre
   Widget _buildSingleGenreSection(Map<String, dynamic> genre) {
     final String genreName = genre['name'] ?? 'Unknown Genre';
     final List songList = genre['songs'] as List? ?? [];
 
-    // This is a copy of the "Recommended Albums" widget structure
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // --- EMOJI ADDED ---
-        sectionTitle("$genreName "), // Use the existing sectionTitle helper
+        sectionTitle("$genreName "),
         SizedBox(height: 12),
         Container(
-          height: 130, // Same height as "Recommended Albums"
+          height: 130,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             padding: EdgeInsets.symmetric(horizontal: 16),
@@ -774,6 +702,8 @@ class _TopSectionState extends State<TopSection> {
               final song = songList[index];
               return GestureDetector(
                 onTap: () {
+                  FocusManager.instance.primaryFocus?.unfocus();
+                  _searchController.clear();
                   Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -782,7 +712,6 @@ class _TopSectionState extends State<TopSection> {
                     ),
                   );
                 },
-                // Use the existing songAlbumCard helper
                 child: songAlbumCard(
                   song["name"] ?? "Unknown Song",
                   song["image"],
@@ -791,26 +720,23 @@ class _TopSectionState extends State<TopSection> {
             },
           ),
         ),
-        SizedBox(height: 20), // Add spacing after each genre
+        SizedBox(height: 20),
       ],
     );
   }
 
-  /// Builds the horizontal-scrolling "History" section
   Widget _buildHistorySection() {
     if (_isHistoryLoading || _historySongs.isEmpty || _loggedInUserId == null) {
-      // Don't show anything if loading, empty, or logged out
       return SizedBox.shrink();
     }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // --- EMOJI ADDED ---
-        sectionTitle("Recently Played"), // The special title
+        sectionTitle("Recently Played"),
         SizedBox(height: 12),
         Container(
-          height: 130, // Same height as "Recommended Albums"
+          height: 130,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             padding: EdgeInsets.symmetric(horizontal: 16),
@@ -819,6 +745,8 @@ class _TopSectionState extends State<TopSection> {
               final song = _historySongs[index];
               return GestureDetector(
                 onTap: () {
+                  FocusManager.instance.primaryFocus?.unfocus();
+                  _searchController.clear();
                   Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -827,7 +755,6 @@ class _TopSectionState extends State<TopSection> {
                     ),
                   );
                 },
-                // Use the existing songAlbumCard helper
                 child: songAlbumCard(
                   song["name"] ?? "Unknown Song",
                   song["image"],
@@ -836,26 +763,23 @@ class _TopSectionState extends State<TopSection> {
             },
           ),
         ),
-        SizedBox(height: 20), // Add spacing after the section
+        SizedBox(height: 20),
       ],
     );
   }
 
-  // --- 5. NEW WIDGET ADDED ---
-  /// Builds the horizontal-scrolling "Recommended" section
   Widget _buildRecommendedSection() {
     if (_isRecLoading || _recommendedSongs.isEmpty || _loggedInUserId == null) {
-      // Don't show anything if loading, empty, or logged out
       return SizedBox.shrink();
     }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        sectionTitle("Just For You 💖"), // The special title
+        sectionTitle("Just For You 💖"),
         SizedBox(height: 12),
         Container(
-          height: 130, // Same height as "Recommended Albums"
+          height: 130,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             padding: EdgeInsets.symmetric(horizontal: 16),
@@ -864,6 +788,8 @@ class _TopSectionState extends State<TopSection> {
               final song = _recommendedSongs[index];
               return GestureDetector(
                 onTap: () {
+                  FocusManager.instance.primaryFocus?.unfocus();
+                  _searchController.clear();
                   Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -872,7 +798,6 @@ class _TopSectionState extends State<TopSection> {
                     ),
                   );
                 },
-                // Use the existing songAlbumCard helper
                 child: songAlbumCard(
                   song["name"] ?? "Unknown Song",
                   song["image"],
@@ -881,12 +806,44 @@ class _TopSectionState extends State<TopSection> {
             },
           ),
         ),
-        SizedBox(height: 20), // Add spacing after the section
+        SizedBox(height: 20),
       ],
     );
   }
-  // --- END OF ADDITION ---
 
+  Widget _buildFooter() {
+    return Padding(
+      padding: const EdgeInsets.only(top: 4.0, bottom: 8.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            "Made with ",
+            style: GoogleFonts.cabinSketch(
+              color: Colors.white70,
+              fontSize: 16,
+            ),
+          ),
+          BeatingHeart(),
+          Text(
+            " by ",
+            style: GoogleFonts.cabinSketch(
+              color: Colors.white70,
+              fontSize: 16,
+            ),
+          ),
+          Text(
+            "Aayush Chauhan",
+            style: GoogleFonts.cabinSketch(
+              color: Colors.pinkAccent,
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -896,7 +853,7 @@ class _TopSectionState extends State<TopSection> {
       body: SafeArea(
         child: GestureDetector(
           onTap: () {
-            FocusScope.of(context).unfocus();
+            FocusManager.instance.primaryFocus?.unfocus();
           },
           child: SingleChildScrollView(
             child: Padding(
@@ -917,7 +874,7 @@ class _TopSectionState extends State<TopSection> {
                   _buildSearchResults(),
                   SliderWidget(),
                   SizedBox(height: 20),
-                  // --- EMOJI ADDED ---
+
                   sectionTitle("Artists️‍❤️‍🔥"),
                   SizedBox(height: 12),
                   Container(
@@ -935,6 +892,8 @@ class _TopSectionState extends State<TopSection> {
                         final artist = artists[index];
                         return GestureDetector(
                           onTap: () {
+                            FocusManager.instance.primaryFocus?.unfocus();
+                            _searchController.clear();
                             final artistId = artist['arid']?.toString();
                             final artistName = artist['name']?.toString();
                             if (artistId != null) {
@@ -948,8 +907,6 @@ class _TopSectionState extends State<TopSection> {
                                 ),
                               );
                             } else {
-                              print(
-                                  "Artist ID (arid) is missing for ${artist['name']}");
                               ScaffoldMessenger.of(context)
                                   .showSnackBar(SnackBar(
                                 content: Text(
@@ -967,10 +924,7 @@ class _TopSectionState extends State<TopSection> {
                   SizedBox(height: 20),
 
                   _buildHistorySection(),
-
-                  // --- 6. WIDGET PLACED HERE ---
                   _buildRecommendedSection(),
-                  // --- END OF ADDITION ---
 
                   sectionTitle("Trending Songs🔥"),
                   SizedBox(height: 12),
@@ -989,6 +943,8 @@ class _TopSectionState extends State<TopSection> {
                         final song = songs[index];
                         return GestureDetector(
                           onTap: () {
+                            FocusManager.instance.primaryFocus?.unfocus();
+                            _searchController.clear();
                             Navigator.push(
                               context,
                               MaterialPageRoute(
@@ -1006,16 +962,19 @@ class _TopSectionState extends State<TopSection> {
                     ),
                   ),
                   SizedBox(height: 20),
-                  // --- EMOJI ADDED ---
+
                   sectionTitle("Today's Special ✨"),
                   SizedBox(height: 12),
                   TodaysSpecialWidget(),
 
-                  SizedBox(height: 30), // Margin after Today's Special
+                  SizedBox(height: 30),
 
                   _buildGenreSections(),
 
                   SizedBox(height: 20),
+
+                  _buildFooter(),
+                  SizedBox(height: 10),
                 ],
               ),
             ),
@@ -1023,7 +982,6 @@ class _TopSectionState extends State<TopSection> {
         ),
       ),
 
-      // --- DRAWER ---
       endDrawer: Drawer(
         backgroundColor: Color(0xFF000000).withOpacity(0.5),
         child: BackdropFilter(
@@ -1043,36 +1001,27 @@ class _TopSectionState extends State<TopSection> {
                 ),
                 child: Stack(
                   children: [
-                    // --- MODIFICATION 1 ---
-                    // Close Button
                     Align(
                       alignment: Alignment.topRight,
                       child: IconButton(
-                        icon: Icon(Icons.close, color: Colors.white), // <-- Changed color
+                        icon: Icon(Icons.close, color: Colors.white),
                         onPressed: () {
                           Navigator.pop(context);
                         },
                       ),
                     ),
-                    // User Info
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       mainAxisAlignment: MainAxisAlignment.start,
                       children: [
                         CircleAvatar(
-                          radius: 30,
-                          backgroundColor: Colors.transparent,
-                          backgroundImage: (_userImage != null &&
-                              _userImage!.isNotEmpty)
-                              ? NetworkImage(_userImage!)
-                              : AssetImage("assets/user.png")
-                          as ImageProvider,
-                          onBackgroundImageError: (_userImage != null &&
-                              _userImage!.isNotEmpty)
-                              ? (e, s) {
-                            print("Failed to load drawer image: $e");
-                          }
-                              : null,
+                            radius: 30,
+                            backgroundColor: Colors.transparent,
+                            child: ClipOval(
+                              child: (_userImage != null && _userImage!.isNotEmpty)
+                                  ? BasicRetryImage(imageUrl: _userImage!, width: 60, height: 60)
+                                  : Image.asset("assets/user.png", width: 60, height: 60, fit: BoxFit.cover),
+                            )
                         ),
                         SizedBox(width: 16),
                         Expanded(
@@ -1080,7 +1029,6 @@ class _TopSectionState extends State<TopSection> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              // User Name Widget
                               Builder(
                                 builder: (context) {
                                   final String displayName =
@@ -1115,7 +1063,6 @@ class _TopSectionState extends State<TopSection> {
                                 },
                               ),
                               SizedBox(height: 4),
-                              // Email Widget
                               Text(
                                 _userEmail,
                                 style: GoogleFonts.cabinSketch(
@@ -1134,12 +1081,9 @@ class _TopSectionState extends State<TopSection> {
                   ],
                 ),
               ),
-
-              // --- MODIFICATION 2 ---
-              // --- CONDITIONAL "EDIT PROFILE" TILE ---
               if (_loggedInUserId != null)
                 ListTile(
-                  leading: Icon(Icons.person, color: Colors.blueAccent), // <-- Changed color
+                  leading: Icon(Icons.person, color: Colors.blueAccent),
                   title: Text(
                     'Edit Profile',
                     style: GoogleFonts.cabinSketch(
@@ -1149,22 +1093,20 @@ class _TopSectionState extends State<TopSection> {
                     ),
                   ),
                   onTap: () {
-                    Navigator.pop(context); // Close the drawer
+                    FocusManager.instance.primaryFocus?.unfocus();
+                    _searchController.clear();
+                    Navigator.pop(context);
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) =>
-                        const ProfilePage(), // Navigate to ProfilePage
+                        builder: (context) => const ProfilePage(),
                       ),
                     );
                   },
                 ),
-
-              // --- MODIFICATION 3 ---
-              // --- CONDITIONAL "LOGOUT" TILE / "LOGIN" BUTTON ---
               if (_loggedInUserId != null)
                 ListTile(
-                  leading: Icon(Icons.logout, color: Colors.blueAccent), // <-- Changed color
+                  leading: Icon(Icons.logout, color: Colors.blueAccent),
                   title: Text(
                     'Logout',
                     style: GoogleFonts.cabinSketch(
@@ -1183,10 +1125,7 @@ class _TopSectionState extends State<TopSection> {
           ),
         ),
       ),
-      // --- END OF DRAWER ---
 
-      // --- BOTTOM NAVIGATION BAR ---
-      // --- THIS ENTIRE WIDGET IS MODIFIED ---
       bottomNavigationBar: Padding(
         padding: const EdgeInsets.only(bottom: 2),
         child: ClipRRect(
@@ -1213,19 +1152,18 @@ class _TopSectionState extends State<TopSection> {
                 unselectedItemColor: Colors.white70,
                 showUnselectedLabels: true,
                 type: BottomNavigationBarType.fixed,
-                // 1. Current index changed to 2 (for Home)
                 currentIndex: 2,
                 onTap: (index) {
-                  // 2. onTap logic reordered
+                  FocusManager.instance.primaryFocus?.unfocus();
+                  _searchController.clear();
+
                   if (index == 0) {
-                    // Category
                     Navigator.push(
                       context,
                       MaterialPageRoute(
                           builder: (context) => const CategoryPage()),
                     );
                   } else if (index == 1) {
-                    // Playlist
                     if (_loggedInUserId != null) {
                       Navigator.push(
                         context,
@@ -1242,10 +1180,8 @@ class _TopSectionState extends State<TopSection> {
                       ).then((_) => _loadUserData());
                     }
                   } else if (index == 2) {
-                    // Home
                     print("Home tapped");
                   } else if (index == 3) {
-                    // Favourite
                     if (_loggedInUserId != null) {
                       Navigator.push(
                         context,
@@ -1262,7 +1198,6 @@ class _TopSectionState extends State<TopSection> {
                       ).then((_) => _loadUserData());
                     }
                   } else if (index == 4) {
-                    // History
                     if (_loggedInUserId != null) {
                       Navigator.push(
                         context,
@@ -1280,7 +1215,6 @@ class _TopSectionState extends State<TopSection> {
                     }
                   }
                 },
-                // 3. Items list reordered
                 items: [
                   BottomNavigationBarItem(
                       icon: Icon(Icons.library_music), label: "Category"),
@@ -1298,11 +1232,9 @@ class _TopSectionState extends State<TopSection> {
           ),
         ),
       ),
-      // --- END OF MODIFIED WIDGET ---
     );
   }
 
-  // --- THIS WIDGET IS MODIFIED ---
   Widget searchBar() {
     final hintStyle = GoogleFonts.cabinSketch(
       fontSize: 16,
@@ -1344,9 +1276,7 @@ class _TopSectionState extends State<TopSection> {
         child: Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(28.5),
-            // --- MODIFICATION HERE ---
-            color: Colors.black, // Replaced gradient with solid color
-            // --- END MODIFICATION ---
+            color: Colors.black,
           ),
           child: Row(
             children: [
@@ -1411,17 +1341,8 @@ class _TopSectionState extends State<TopSection> {
       ),
     );
   }
-  // --- END OF MODIFICATION ---
 
   Widget profileAvatar() {
-    ImageProvider backgroundImage;
-
-    if (_userImage != null && _userImage!.isNotEmpty) {
-      backgroundImage = NetworkImage(_userImage!);
-    } else {
-      backgroundImage = AssetImage("assets/user.png");
-    }
-
     return GestureDetector(
       onTap: () {
         _scaffoldKey.currentState?.openEndDrawer();
@@ -1440,14 +1361,13 @@ class _TopSectionState extends State<TopSection> {
           ],
         ),
         child: CircleAvatar(
-          radius: 22,
-          backgroundColor: Colors.transparent,
-          backgroundImage: backgroundImage,
-          onBackgroundImageError: (backgroundImage is NetworkImage)
-              ? (e, s) {
-            print("Failed to load user network image: $e");
-          }
-              : null,
+            radius: 22,
+            backgroundColor: Colors.transparent,
+            child: ClipOval(
+              child: (_userImage != null && _userImage!.isNotEmpty)
+                  ? BasicRetryImage(imageUrl: _userImage!, width: 44, height: 44)
+                  : Image.asset("assets/user.png", width: 44, height: 44, fit: BoxFit.cover),
+            )
         ),
       ),
     );
@@ -1464,7 +1384,7 @@ class _TopSectionState extends State<TopSection> {
         text: TextSpan(
           children: [
             TextSpan(
-              text: text.isNotEmpty ? text[0] : '', // Safe check for empty string
+              text: text.isNotEmpty ? text[0] : '',
               style: kaushanStyle.copyWith(
                 fontSize: 25,
                 color: firstColor,
@@ -1492,20 +1412,10 @@ class _TopSectionState extends State<TopSection> {
         borderRadius: BorderRadius.circular(10),
         child: Stack(
           children: [
-            FadeInImage.assetNetwork(
-              placeholder: 'assets/placeholder.png',
-              image: photoUrl,
-              fit: BoxFit.cover,
+            BasicRetryImage(
+              imageUrl: photoUrl,
               width: 100,
               height: 140,
-              imageErrorBuilder: (context, error, stackTrace) {
-                return Image.asset(
-                  'assets/placeholder.png',
-                  fit: BoxFit.cover,
-                  width: 100,
-                  height: 140,
-                );
-              },
             ),
             Container(
               decoration: BoxDecoration(
@@ -1554,20 +1464,10 @@ class _TopSectionState extends State<TopSection> {
         borderRadius: BorderRadius.circular(10),
         child: Stack(
           children: [
-            FadeInImage.assetNetwork(
-              placeholder: 'assets/placeholder.png',
-              image: coverUrl ?? '',
-              fit: BoxFit.cover,
+            BasicRetryImage(
+              imageUrl: coverUrl ?? '',
               width: 120,
               height: 130,
-              imageErrorBuilder: (context, error, stackTrace) {
-                return Image.asset(
-                  'assets/placeholder.png',
-                  fit: BoxFit.cover,
-                  width: 120,
-                  height: 130,
-                );
-              },
             ),
             Container(
               decoration: BoxDecoration(
@@ -1608,7 +1508,6 @@ class _TopSectionState extends State<TopSection> {
     );
   }
 
-  // --- WIDGET FOR THE GRADIENT LOGIN BUTTON ---
   Widget _buildLoginGradientButton() {
     final loginStyle = GoogleFonts.cabinSketch(
       color: Colors.white,
@@ -1623,7 +1522,9 @@ class _TopSectionState extends State<TopSection> {
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
       child: GestureDetector(
         onTap: () {
-          Navigator.pop(context); // Close the drawer first
+          FocusManager.instance.primaryFocus?.unfocus();
+          _searchController.clear();
+          Navigator.pop(context);
           Navigator.push(
             context,
             MaterialPageRoute(
@@ -1663,7 +1564,6 @@ class _TopSectionState extends State<TopSection> {
   }
 }
 
-// --- SLIDER ---
 class SliderWidget extends StatefulWidget {
   @override
   _SliderWidgetState createState() => _SliderWidgetState();
@@ -1774,6 +1674,7 @@ class _SliderWidgetState extends State<SliderWidget> {
 
           return GestureDetector(
             onTap: () {
+              FocusManager.instance.primaryFocus?.unfocus();
               if (songId != null) {
                 Navigator.push(
                   context,
@@ -1797,7 +1698,6 @@ class _SliderWidgetState extends State<SliderWidget> {
   }
 }
 
-// --- _SliderCard ---
 class _SliderCard extends StatelessWidget {
   final String title;
   final String subtitle;
@@ -1825,20 +1725,10 @@ class _SliderCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         child: Stack(
           children: [
-            FadeInImage.assetNetwork(
-              placeholder: 'assets/placeholder.png',
-              image: imagePath,
-              fit: BoxFit.cover,
+            BasicRetryImage(
+              imageUrl: imagePath,
               width: double.infinity,
               height: double.infinity,
-              imageErrorBuilder: (context, error, stackTrace) {
-                return Image.asset(
-                  'assets/placeholder.png',
-                  fit: BoxFit.cover,
-                  width: double.infinity,
-                  height: double.infinity,
-                );
-              },
             ),
             Container(
               decoration: BoxDecoration(
@@ -1903,7 +1793,6 @@ class _SliderCard extends StatelessWidget {
   }
 }
 
-// --- TodaysSpecialWidget ---
 class TodaysSpecialWidget extends StatefulWidget {
   @override
   _TodaysSpecialWidgetState createState() => _TodaysSpecialWidgetState();
@@ -1993,6 +1882,7 @@ class _TodaysSpecialWidgetState extends State<TodaysSpecialWidget> {
       height: containerHeight,
       child: GestureDetector(
         onTap: () {
+          FocusManager.instance.primaryFocus?.unfocus();
           final String? songId = item['sid']?.toString();
           if (songId != null) {
             Navigator.push(
@@ -2018,7 +1908,6 @@ class _TodaysSpecialWidgetState extends State<TodaysSpecialWidget> {
   }
 }
 
-// --- _SpecialSongCard ---
 class _SpecialSongCard extends StatelessWidget {
   final String title;
   final String subtitle;
@@ -2044,20 +1933,10 @@ class _SpecialSongCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         child: Stack(
           children: [
-            FadeInImage.assetNetwork(
-              placeholder: 'assets/placeholder.png',
-              image: imagePath,
-              fit: BoxFit.cover,
+            BasicRetryImage(
+              imageUrl: imagePath,
               width: double.infinity,
               height: double.infinity,
-              imageErrorBuilder: (context, error, stackTrace) {
-                return Image.asset(
-                  'assets/placeholder.png',
-                  fit: BoxFit.cover,
-                  width: double.infinity,
-                  height: double.infinity,
-                );
-              },
             ),
             Container(
               decoration: BoxDecoration(
@@ -2118,6 +1997,147 @@ class _SpecialSongCard extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class BeatingHeart extends StatefulWidget {
+  @override
+  _BeatingHeartState createState() => _BeatingHeartState();
+}
+
+class _BeatingHeartState extends State<BeatingHeart>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 1200),
+      vsync: this,
+    )..repeat();
+
+    _animation = TweenSequence<double>([
+      TweenSequenceItem(
+        tween: Tween(begin: 1.0, end: 1.3).chain(CurveTween(curve: Curves.easeOut)),
+        weight: 12.5,
+      ),
+      TweenSequenceItem(
+        tween: Tween(begin: 1.3, end: 1.0).chain(CurveTween(curve: Curves.easeIn)),
+        weight: 12.5,
+      ),
+      TweenSequenceItem(
+        tween: Tween(begin: 1.0, end: 1.3).chain(CurveTween(curve: Curves.easeOut)),
+        weight: 12.5,
+      ),
+      TweenSequenceItem(
+        tween: Tween(begin: 1.3, end: 1.0).chain(CurveTween(curve: Curves.easeIn)),
+        weight: 12.5,
+      ),
+      TweenSequenceItem(
+        tween: ConstantTween<double>(1.0),
+        weight: 50.0,
+      ),
+    ]).animate(_controller);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _animation,
+      builder: (context, child) {
+        return Transform.scale(
+          scale: _animation.value,
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 4.0),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.pinkAccent.withOpacity(0.5),
+                  blurRadius: 6 * _animation.value,
+                  spreadRadius: 1 * _animation.value,
+                ),
+              ],
+            ),
+            child: const Text(
+              "❤️",
+              style: TextStyle(fontSize: 14),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+// --- VERY BASIC 3-RETRY IMAGE ---
+class BasicRetryImage extends StatefulWidget {
+  final String imageUrl;
+  final double? width;
+  final double? height;
+
+  BasicRetryImage({required this.imageUrl, this.width, this.height});
+
+  @override
+  _BasicRetryImageState createState() => _BasicRetryImageState();
+}
+
+class _BasicRetryImageState extends State<BasicRetryImage> {
+  int attempt = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.imageUrl.isEmpty) {
+      return Image.asset(
+          'assets/placeholder.png',
+          width: widget.width,
+          height: widget.height,
+          fit: BoxFit.cover
+      );
+    }
+
+    return Image.network(
+      // Append attempt number to force a new network call on failure
+      "${widget.imageUrl}${widget.imageUrl.contains('?') ? '&' : '?'}retry=$attempt",
+      width: widget.width,
+      height: widget.height,
+      fit: BoxFit.cover,
+      errorBuilder: (context, error, stackTrace) {
+        if (attempt < 3) {
+          // Wait a half second before trying again
+          Future.delayed(Duration(milliseconds: 500), () {
+            if (mounted) {
+              setState(() {
+                attempt++;
+              });
+            }
+          });
+          // Show placeholder while it tries again
+          return Image.asset(
+              'assets/placeholder.png',
+              width: widget.width,
+              height: widget.height,
+              fit: BoxFit.cover
+          );
+        } else {
+          // Reached 3 fails, leave it as placeholder forever
+          return Image.asset(
+              'assets/placeholder.png',
+              width: widget.width,
+              height: widget.height,
+              fit: BoxFit.cover
+          );
+        }
+      },
     );
   }
 }

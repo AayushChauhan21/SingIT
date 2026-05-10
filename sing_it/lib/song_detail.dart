@@ -2,13 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'config.dart'; // This file provides AppConfig.baseUrl
-import 'player2.dart'; // Assuming this file contains the SongPlayerPage class
+import 'config.dart';
+import 'player2.dart';
 import 'recording_page.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:shared_preferences/shared_preferences.dart'; // For getting user ID
+import 'package:shared_preferences/shared_preferences.dart';
 import 'login.dart';
-import 'dart:ui'; // For the blur effect
+import 'dart:ui';
+import 'artist_detail.dart';
+import 'category_result.dart'; // Added import for CategoryResultPage
 
 class SongDetailPage extends StatefulWidget {
   final String sid;
@@ -149,105 +151,8 @@ class _SongDetailPageState extends State<SongDetailPage> {
 
   void _showPlaylistDialog() {
     if (_currentUserId == null) {
-      // --- User is NOT logged in ---
-      showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          return Dialog(
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(16.0),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
-                child: Container(
-                  width: 300,
-                  decoration: BoxDecoration(
-                    color: Color(0xFF000000).withOpacity(0.3),
-                    borderRadius: BorderRadius.circular(16.0),
-                    // --- MODIFICATION 1 ---
-                    border: Border.all(color: Colors.pinkAccent),
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(24.0, 24.0, 24.0, 20.0),
-                        child: RichText(
-                          text: TextSpan(
-                            style: GoogleFonts.cabinSketch(
-                              fontSize: 22,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            children: [
-                              TextSpan(
-                                text: 'Login',
-                                style: TextStyle(color: Colors.pinkAccent),
-                              ),
-                              TextSpan(
-                                text: ' Required',
-                                style: TextStyle(color: Colors.white),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(24.0, 0, 24.0, 20.0),
-                        child: Text(
-                          'Please log in to manage your playlists.',
-                          style: GoogleFonts.cabinSketch(
-                            color: Colors.white70,
-                            fontSize: 16,
-                          ),
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            TextButton(
-                              child: Text(
-                                'Cancel',
-                                style: GoogleFonts.cabinSketch(
-                                  color: Colors.white70,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                ),
-                              ),
-                              onPressed: () => Navigator.of(context).pop(),
-                            ),
-                            TextButton(
-                              child: Text(
-                                'Login',
-                                style: GoogleFonts.cabinSketch(
-                                  color: Colors.pinkAccent,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                ),
-                              ),
-                              onPressed: () {
-                                Navigator.of(context).pop();
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(builder: (context) => const LoginPage()),
-                                );
-                              },
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          );
-        },
-      );
+      _showLoginRequiredDialog();
     } else {
-      // --- User IS logged in ---
       showDialog(
         context: context,
         builder: (BuildContext context) {
@@ -260,8 +165,6 @@ class _SongDetailPageState extends State<SongDetailPage> {
     }
   }
 
-  // --- 1. NEW FUNCTION ADDED ---
-  // This function shows the login popup
   void _showLoginRequiredDialog() {
     showDialog(
       context: context,
@@ -276,7 +179,7 @@ class _SongDetailPageState extends State<SongDetailPage> {
               child: Container(
                 width: 300,
                 decoration: BoxDecoration(
-                  color: Color(0xFF000000).withOpacity(0.3),
+                  color: const Color(0xFF000000).withOpacity(0.3),
                   borderRadius: BorderRadius.circular(16.0),
                   border: Border.all(color: Colors.pinkAccent),
                 ),
@@ -291,7 +194,7 @@ class _SongDetailPageState extends State<SongDetailPage> {
                             fontSize: 22,
                             fontWeight: FontWeight.bold,
                           ),
-                          children: [
+                          children: const [
                             TextSpan(
                               text: 'Login',
                               style: TextStyle(color: Colors.pinkAccent),
@@ -307,7 +210,7 @@ class _SongDetailPageState extends State<SongDetailPage> {
                     Padding(
                       padding: const EdgeInsets.fromLTRB(24.0, 0, 24.0, 20.0),
                       child: Text(
-                        'Please log in to use this feature.', // Generic message
+                        'Please log in to use this feature.',
                         style: GoogleFonts.cabinSketch(
                           color: Colors.white70,
                           fontSize: 16,
@@ -359,7 +262,6 @@ class _SongDetailPageState extends State<SongDetailPage> {
       },
     );
   }
-  // --- END OF NEW FUNCTION ---
 
   String _cleanLyrics(String rawLyrics) {
     if (rawLyrics.isEmpty) return 'No lyrics available.';
@@ -385,30 +287,49 @@ class _SongDetailPageState extends State<SongDetailPage> {
           return;
         }
 
-        List<String> singersList = [];
-        if (fetchedData['singers'] is String) {
-          final String singersString = fetchedData['singers'] ?? 'Unknown Singer';
-          singersList = singersString.split(',').map((s) => s.trim()).toList();
-        } else if (fetchedData['singers'] is List) {
-          singersList = List<dynamic>.from(fetchedData['singers'])
-              .map((s) => s is Map ? s['name']?.toString() ?? 'Unknown' : s.toString())
-              .toList();
-        } else if (fetchedData['singer'] is String){
-          final String singersString = fetchedData['singer'] ?? 'Unknown Singer';
-          singersList = singersString.split(',').map((s) => s.trim()).toList();
+        List<Map<String, String>> singersList = [];
+        if (fetchedData['singers'] is List) {
+          singersList = List<dynamic>.from(fetchedData['singers']).map((s) {
+            if (s is Map) {
+              return {
+                'id': s['id']?.toString() ?? s['arid']?.toString() ?? '',
+                'name': s['name']?.toString() ?? 'Unknown Singer',
+              };
+            } else {
+              return {
+                'id': '',
+                'name': s.toString(),
+              };
+            }
+          }).toList();
+        } else if (fetchedData['singers'] is String || fetchedData['singer'] is String) {
+          final String singersString = fetchedData['singers'] ?? fetchedData['singer'] ?? 'Unknown Singer';
+          singersList = singersString.split(',').map((s) => {
+            'id': fetchedData['arid']?.toString() ?? '',
+            'name': s.trim(),
+          }).toList();
         } else {
-          singersList = ['Unknown Singer'];
+          singersList = [{'id': '', 'name': 'Unknown Singer'}];
         }
 
-        List<String> genresList = [];
-        if (fetchedData['genres'] is String) {
+        List<Map<String, String>> genresList = [];
+        if (fetchedData['genres'] is List) {
+          genresList = List<dynamic>.from(fetchedData['genres']).map((g) {
+            if (g is Map) {
+              return {
+                'id': g['id']?.toString() ?? g['gid']?.toString() ?? '',
+                'name': g['name']?.toString() ?? 'Unknown',
+              };
+            } else {
+              return {'id': '', 'name': g.toString()};
+            }
+          }).toList();
+        } else if (fetchedData['genres'] is String) {
           final String genresString = fetchedData['genres'] ?? '';
-          genresList = genresString.split(',').map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
-        } else if (fetchedData['genres'] is List) {
-          genresList = List<dynamic>.from(fetchedData['genres'])
-              .map((g) => g is Map ? g['name']?.toString() ?? '' : g.toString())
-              .where((s) => s.isNotEmpty)
-              .toList();
+          genresList = genresString.split(',').map((s) => s.trim()).where((s) => s.isNotEmpty).map((s) => {
+            'id': '',
+            'name': s
+          }).toList();
         }
 
         final String languagesString = fetchedData['languages'] ?? '';
@@ -445,7 +366,6 @@ class _SongDetailPageState extends State<SongDetailPage> {
       });
     }
   }
-
 
   Future<void> _fetchRelatedSongsBySid(String sid) async {
     setState(() => _isRelatedLoading = true);
@@ -526,7 +446,10 @@ class _SongDetailPageState extends State<SongDetailPage> {
     if (!_isFetchingVideoId) {
       setState(() => _isFetchingVideoId = true);
       final songName = _songDetails!['name'] ?? '';
-      final singers = (_songDetails!['singers'] as List<dynamic>?)?.cast<String>().join(', ') ?? '';
+
+      final singersList = (_songDetails!['singers'] as List<dynamic>?)?.cast<Map<String, String>>() ?? [];
+      final singers = singersList.map((s) => s['name']).join(', ');
+
       if (songName.isNotEmpty) {
         await _fetchYouTubeVideoId(songName, singers);
       } else {
@@ -536,35 +459,20 @@ class _SongDetailPageState extends State<SongDetailPage> {
   }
 
   Future<void> _addHistoryRecord() async {
-    // Only save history if the user is logged in
-    if (_currentUserId == null) {
-      print("User not logged in. Skipping history.");
-      return;
-    }
+    if (_currentUserId == null) return;
 
     try {
-      // We use POST, which is what your history.php script expects
-      final response = await http.post(
+      await http.post(
         Uri.parse("${AppConfig.baseUrl}history.php"),
         body: {
-          'user_id': _currentUserId!, // We know it's not null here
+          'user_id': _currentUserId!,
           'song_id': widget.sid,
         },
       );
-
-      if (response.statusCode == 200) {
-        // You can check the response if you want
-        print('History record response: ${response.body}');
-      } else {
-        // Log server errors
-        print('Failed to save history. Status: ${response.statusCode}');
-      }
     } catch (e) {
-      // Log network or other errors
       print('Error saving history: $e');
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -580,9 +488,10 @@ class _SongDetailPageState extends State<SongDetailPage> {
         body: Center(child: Text('Failed to load song details.', style: TextStyle(color: Colors.white))),
       );
     }
+
     final songName = _songDetails!['name'] ?? 'Unknown Song';
-    final singers = (_songDetails!['singers'] as List<dynamic>?)?.cast<String>() ?? ['Unknown Singer'];
-    final genres = (_songDetails!['genres'] as List<dynamic>?)?.cast<String>() ?? [];
+    final singers = (_songDetails!['singers'] as List<dynamic>?)?.cast<Map<String, String>>() ?? [{'id': '', 'name': 'Unknown Singer'}];
+    final genres = (_songDetails!['genres'] as List<dynamic>?)?.cast<Map<String, String>>() ?? [];
     final languages = (_songDetails!['languages'] as List<dynamic>?)?.cast<String>() ?? [];
 
     final rawLyrics = _songDetails!['lyrics'] ?? 'No lyrics available.';
@@ -620,7 +529,6 @@ class _SongDetailPageState extends State<SongDetailPage> {
     );
   }
 
-  // --- 2. MODIFIED: _buildButtons widget ---
   Widget _buildButtons() {
     final playItTextStyle = GoogleFonts.cabinSketch(
       color: Colors.white,
@@ -649,23 +557,21 @@ class _SongDetailPageState extends State<SongDetailPage> {
                   color: Colors.pinkAccent.withOpacity(0.5),
                   blurRadius: 12,
                   spreadRadius: 2,
-                  offset: Offset(0, 4),
+                  offset: const Offset(0, 4),
                 ),
                 BoxShadow(
                   color: Colors.blueAccent.withOpacity(0.4),
                   blurRadius: 10,
                   spreadRadius: 1,
-                  offset: Offset(0, 2),
+                  offset: const Offset(0, 2),
                 ),
               ],
             ),
             child: ElevatedButton.icon(
               onPressed: () {
-                // --- MODIFICATION START ---
                 if (_currentUserId == null) {
-                  _showLoginRequiredDialog(); // Show popup if not logged in
+                  _showLoginRequiredDialog();
                 } else {
-                  // This is the original code, now in the 'else' block
                   _addHistoryRecord();
 
                   final Map<String, dynamic> currentSongData = {
@@ -698,7 +604,6 @@ class _SongDetailPageState extends State<SongDetailPage> {
                     ),
                   );
                 }
-                // --- MODIFICATION END ---
               },
               icon: const Icon(
                   Icons.play_arrow_rounded,
@@ -741,13 +646,13 @@ class _SongDetailPageState extends State<SongDetailPage> {
                   color: Colors.pinkAccent.withOpacity(0.5),
                   blurRadius: 12,
                   spreadRadius: 2,
-                  offset: Offset(0, 4),
+                  offset: const Offset(0, 4),
                 ),
                 BoxShadow(
                   color: Colors.blueAccent.withOpacity(0.4),
                   blurRadius: 10,
                   spreadRadius: 1,
-                  offset: Offset(0, 2),
+                  offset: const Offset(0, 2),
                 ),
               ],
             ),
@@ -760,11 +665,9 @@ class _SongDetailPageState extends State<SongDetailPage> {
                 ),
                 child: InkWell(
                   onTap: () {
-                    // --- MODIFICATION START ---
                     if (_currentUserId == null) {
-                      _showLoginRequiredDialog(); // Show popup if not logged in
+                      _showLoginRequiredDialog();
                     } else {
-                      // This is the original code, now in the 'else' block
                       Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -772,7 +675,6 @@ class _SongDetailPageState extends State<SongDetailPage> {
                         ),
                       );
                     }
-                    // --- MODIFICATION END ---
                   },
                   borderRadius: BorderRadius.circular(27),
                   child: Padding(
@@ -793,10 +695,8 @@ class _SongDetailPageState extends State<SongDetailPage> {
       ],
     );
   }
-  // --- END OF MODIFICATION ---
 
-
-  Widget _buildSongInfoRow(String songName, List<String> singers, List<String> genres, List<String> languages) {
+  Widget _buildSongInfoRow(String songName, List<Map<String, String>> singers, List<Map<String, String>> genres, List<String> languages) {
     final imageUrl = _songDetails?['image'];
 
     final nameStyle = GoogleFonts.cabinSketch(
@@ -940,17 +840,17 @@ class _SongDetailPageState extends State<SongDetailPage> {
                           color: Colors.pinkAccent.withOpacity(0.5),
                           blurRadius: 12,
                           spreadRadius: 2,
-                          offset: Offset(0, 4),
+                          offset: const Offset(0, 4),
                         ),
                         BoxShadow(
                           color: Colors.blueAccent.withOpacity(0.4),
                           blurRadius: 10,
                           spreadRadius: 1,
-                          offset: Offset(0, 2),
+                          offset: const Offset(0, 2),
                         ),
                       ],
                     ),
-                    child: Icon(
+                    child: const Icon(
                       Icons.play_arrow_rounded,
                       color: Colors.white,
                       size: 40,
@@ -964,51 +864,122 @@ class _SongDetailPageState extends State<SongDetailPage> {
     );
   }
 
-  Widget _buildHeaderSectionContent(List<String> singers) {
-    final singersText = singers.join(' / ');
+  Widget _buildHeaderSectionContent(List<Map<String, String>> singers) {
     final labelStyle = GoogleFonts.cabinSketch(color: Colors.pinkAccent, fontSize: 14, fontWeight: FontWeight.bold);
-    final contentStyle = GoogleFonts.cabinSketch(color: Colors.white70, fontSize: 14);
+    final contentStyle = GoogleFonts.cabinSketch(
+      color: Colors.white70,
+      fontSize: 14,
+    );
 
-    return RichText(
-      text: TextSpan(
-        children: [
-          TextSpan(text: 'Singer: ', style: labelStyle),
-          TextSpan(text: singersText, style: contentStyle),
-        ],
-      ),
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
+    return Wrap(
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        Text('Singer: ', style: labelStyle),
+        ...singers.asMap().entries.map((entry) {
+          int idx = entry.key;
+          Map<String, String> singerMap = entry.value;
+          String artistId = singerMap['id'] ?? '';
+          String artistName = singerMap['name'] ?? 'Unknown Singer';
+
+          return Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              GestureDetector(
+                onTap: () {
+                  if (artistId.isNotEmpty && artistId != 'null') {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ArtistDetailPage(
+                          artistId: artistId,
+                          initialArtistName: artistName,
+                        ),
+                      ),
+                    );
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Artist details not available.'),
+                        backgroundColor: Colors.redAccent,
+                      ),
+                    );
+                  }
+                },
+                child: Text(artistName, style: contentStyle),
+              ),
+              if (idx < singers.length - 1)
+                Text(' / ', style: GoogleFonts.cabinSketch(color: Colors.white70, fontSize: 14)),
+            ],
+          );
+        }).toList(),
+      ],
     );
   }
 
-  Widget _buildInfoSection(List<String> genres, List<String> languages) {
-    final genreText = genres.isNotEmpty ? genres.join(' / ') : 'Not Available';
-    final languageText = languages.join(' / ');
-
+  Widget _buildInfoSection(List<Map<String, String>> genres, List<String> languages) {
     final labelStyle = GoogleFonts.cabinSketch(color: Colors.pinkAccent, fontSize: 14, fontWeight: FontWeight.bold);
-    final contentStyle = GoogleFonts.cabinSketch(color: Colors.white60, fontSize: 14);
+    final contentStyle = GoogleFonts.cabinSketch(
+      color: Colors.white60,
+      fontSize: 14,
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        RichText(
-          text: TextSpan(
-            children: [
-              TextSpan(text: 'Genre: ', style: labelStyle),
-              TextSpan(text: genreText, style: contentStyle),
-            ],
-          ),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
+        Wrap(
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            Text('Genre: ', style: labelStyle),
+            if (genres.isEmpty)
+              Text('Not Available', style: GoogleFonts.cabinSketch(color: Colors.white60, fontSize: 14))
+            else
+              ...genres.asMap().entries.map((entry) {
+                int idx = entry.key;
+                Map<String, String> genreMap = entry.value;
+                String genreId = genreMap['id'] ?? '';
+                String genreName = genreMap['name'] ?? 'Unknown';
+
+                return Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    GestureDetector(
+                      onTap: () {
+                        if (genreId.isNotEmpty && genreId != 'null') {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => CategoryResultPage(
+                                categoryId: genreId,
+                                categoryName: genreName,
+                              ),
+                            ),
+                          );
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Genre details not available.'),
+                              backgroundColor: Colors.redAccent,
+                            ),
+                          );
+                        }
+                      },
+                      child: Text(genreName, style: contentStyle),
+                    ),
+                    if (idx < genres.length - 1)
+                      Text(' / ', style: GoogleFonts.cabinSketch(color: Colors.white60, fontSize: 14)),
+                  ],
+                );
+              }).toList(),
+          ],
         ),
-        if (languageText.isNotEmpty)
+        if (languages.isNotEmpty)
           Padding(
             padding: const EdgeInsets.only(top: 4.0),
             child: RichText(
               text: TextSpan(
                 children: [
                   TextSpan(text: 'Language: ', style: labelStyle),
-                  TextSpan(text: languageText, style: contentStyle),
+                  TextSpan(text: languages.join(' / '), style: GoogleFonts.cabinSketch(color: Colors.white60, fontSize: 14)),
                 ],
               ),
               maxLines: 1,
@@ -1094,13 +1065,13 @@ class _SongDetailPageState extends State<SongDetailPage> {
               onPressed: () => setState(() => _isLyricsExpanded = !_isLyricsExpanded),
               child: RichText(
                 text: _isLyricsExpanded
-                    ? TextSpan( // "Show Less <"
+                    ? TextSpan(
                   children: [
                     TextSpan(text: 'Show Less ', style: pinkStyle),
                     TextSpan(text: '<', style: whiteStyle),
                   ],
                 )
-                    : TextSpan( // "More >"
+                    : TextSpan(
                   children: [
                     TextSpan(text: 'More ', style: pinkStyle),
                     TextSpan(text: '>', style: whiteStyle),
@@ -1177,9 +1148,6 @@ class _SongDetailPageState extends State<SongDetailPage> {
   }
 }
 
-//
-// --- 4. THIS ENTIRE WIDGET IS MODIFIED ---
-//
 class _AddSongToPlaylistDialog extends StatefulWidget {
   final String userId;
   final String songId;
@@ -1289,7 +1257,6 @@ class _AddSongToPlaylistDialogState extends State<_AddSongToPlaylistDialog> {
     );
   }
 
-  // --- THIS IS THE MODIFIED FUNCTION ---
   Future<void> _showCreatePlaylistDialog() async {
     showDialog(
       context: context,
@@ -1301,12 +1268,11 @@ class _AddSongToPlaylistDialogState extends State<_AddSongToPlaylistDialog> {
             borderRadius: BorderRadius.circular(16.0),
             child: BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
-              child: Container( // No gradient border, just the content container
+              child: Container(
                 width: 300,
                 decoration: BoxDecoration(
-                  color: Color(0xFF000000).withOpacity(0.3),
+                  color: const Color(0xFF000000).withOpacity(0.3),
                   borderRadius: BorderRadius.circular(16.0),
-                  // --- MODIFICATION 2 ---
                   border: Border.all(color: Colors.pinkAccent),
                 ),
                 child: Column(
@@ -1332,12 +1298,11 @@ class _AddSongToPlaylistDialogState extends State<_AddSongToPlaylistDialog> {
                         decoration: InputDecoration(
                           hintText: 'Playlist name',
                           hintStyle: GoogleFonts.cabinSketch(color: Colors.white70, fontSize: 16),
-                          enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white)),
-                          focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.pinkAccent)),
+                          enabledBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Colors.white)),
+                          focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Colors.pinkAccent)),
                         ),
                       ),
                     ),
-                    // --- MODIFIED BUTTON LAYOUT ---
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
                       child: Row(
@@ -1408,7 +1373,6 @@ class _AddSongToPlaylistDialogState extends State<_AddSongToPlaylistDialog> {
                         ],
                       ),
                     ),
-                    // --- END MODIFIED BUTTON LAYOUT ---
                   ],
                 ),
               ),
@@ -1419,7 +1383,6 @@ class _AddSongToPlaylistDialogState extends State<_AddSongToPlaylistDialog> {
     );
   }
 
-  // --- NEW HELPER WIDGET FOR GRADIENT BUTTONS ---
   Widget _buildGradientButton({
     required String text,
     required Gradient gradient,
@@ -1431,7 +1394,7 @@ class _AddSongToPlaylistDialogState extends State<_AddSongToPlaylistDialog> {
         padding: const EdgeInsets.symmetric(vertical: 12.0),
         decoration: BoxDecoration(
           gradient: gradient,
-          borderRadius: BorderRadius.circular(30.0), // Rounded shape
+          borderRadius: BorderRadius.circular(30.0),
           boxShadow: [
             BoxShadow(
               color: gradient.colors.first.withOpacity(0.5),
@@ -1481,12 +1444,10 @@ class _AddSongToPlaylistDialogState extends State<_AddSongToPlaylistDialog> {
     _showGlowSnackBar(message, isSuccess);
 
     if (isSuccess) {
-      // Refresh the list instead of popping
       _fetchPlaylists();
     }
   }
 
-  // --- THIS IS THE MODIFIED FUNCTION ---
   Widget _buildContent() {
     if (_isLoading) {
       return const Center(child: CircularProgressIndicator(color: Colors.pinkAccent));
@@ -1523,7 +1484,6 @@ class _AddSongToPlaylistDialogState extends State<_AddSongToPlaylistDialog> {
           final Color iconColor = containsSong ? Colors.redAccent : Colors.green;
 
           return ListTile(
-            // --- IMAGE IS ON THE LEFT ---
             leading: ClipRRect(
               borderRadius: BorderRadius.circular(8.0),
               child: (imageUrl != null && imageUrl.isNotEmpty)
@@ -1556,7 +1516,6 @@ class _AddSongToPlaylistDialogState extends State<_AddSongToPlaylistDialog> {
                 fontWeight: FontWeight.bold,
               ),
             ),
-            // --- ICON BUTTON IS ON THE RIGHT ---
             trailing: IconButton(
               icon: Icon(iconData, color: iconColor),
               onPressed: () {
@@ -1565,13 +1524,12 @@ class _AddSongToPlaylistDialogState extends State<_AddSongToPlaylistDialog> {
                 }
               },
             ),
-            onTap: null, // Row is no longer tappable, only the button
+            onTap: null,
           );
         }).toList(),
       ],
     );
   }
-  // --- END MODIFIED FUNCTION ---
 
   @override
   Widget build(BuildContext context) {
@@ -1582,13 +1540,12 @@ class _AddSongToPlaylistDialogState extends State<_AddSongToPlaylistDialog> {
         borderRadius: BorderRadius.circular(16.0),
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
-          child: Container( // No gradient border, just the content container
+          child: Container(
             width: 300,
             height: 400,
             decoration: BoxDecoration(
-              color: Color(0xFF000000).withOpacity(0.3),
+              color: const Color(0xFF000000).withOpacity(0.3),
               borderRadius: BorderRadius.circular(16.0),
-              // --- MODIFICATION 3 ---
               border: Border.all(color: Colors.pinkAccent),
             ),
             child: Stack(
@@ -1605,7 +1562,7 @@ class _AddSongToPlaylistDialogState extends State<_AddSongToPlaylistDialog> {
                               fontSize: 22,
                               fontWeight: FontWeight.bold
                           ),
-                          children: [
+                          children: const [
                             TextSpan(text: 'Add to '),
                             TextSpan(
                               text: 'Playlist',
@@ -1616,7 +1573,7 @@ class _AddSongToPlaylistDialogState extends State<_AddSongToPlaylistDialog> {
                       ),
                     ),
                     Expanded(
-                      child: Container(
+                      child: SizedBox(
                         width: double.maxFinite,
                         child: _buildContent(),
                       ),
@@ -1627,7 +1584,7 @@ class _AddSongToPlaylistDialogState extends State<_AddSongToPlaylistDialog> {
                   top: 0,
                   right: 0,
                   child: IconButton(
-                    icon: Icon(Icons.close, color: Colors.white),
+                    icon: const Icon(Icons.close, color: Colors.white),
                     onPressed: () => Navigator.of(context).pop(),
                   ),
                 ),
@@ -1636,7 +1593,7 @@ class _AddSongToPlaylistDialogState extends State<_AddSongToPlaylistDialog> {
                   right: 16,
                   child: FloatingActionButton(
                     onPressed: _showCreatePlaylistDialog,
-                    shape: CircleBorder(),
+                    shape: const CircleBorder(),
                     child: Container(
                       width: 56,
                       height: 56,
@@ -1651,7 +1608,7 @@ class _AddSongToPlaylistDialogState extends State<_AddSongToPlaylistDialog> {
                           end: Alignment.bottomRight,
                         ),
                       ),
-                      child: Icon(Icons.add, color: Colors.white),
+                      child: const Icon(Icons.add, color: Colors.white),
                     ),
                   ),
                 ),
