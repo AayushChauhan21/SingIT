@@ -4,6 +4,8 @@ import 'package:http/http.dart' as http;
 import 'dart:async';
 import 'dart:convert';
 import 'dart:ui';
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
 import 'config.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -29,12 +31,13 @@ class SongPlayerPage extends StatefulWidget {
   State<SongPlayerPage> createState() => _SongPlayerPageState();
 }
 
-class _SongPlayerPageState extends State<SongPlayerPage> {
+class _SongPlayerPageState extends State<SongPlayerPage> with TickerProviderStateMixin {
   final AudioPlayer _vocalPlayer = AudioPlayer();
   final AudioPlayer _instrumentalPlayer = AudioPlayer();
 
   bool _isPlaying = false;
   bool _isLoading = true;
+  String _loadingMessage = "Loading...";
 
   Duration _duration = Duration.zero;
   Duration? _dragPosition;
@@ -62,12 +65,50 @@ class _SongPlayerPageState extends State<SongPlayerPage> {
   String? _currentUserId;
   String? _currentSongId;
 
+  // Track local files for cleanup
+  String? _localVocalPath;
+  String? _localInstPath;
+
   RepeatMode _repeatMode = RepeatMode.all;
+
+  late AnimationController _heartBeatController;
+  late Animation<double> _heartBeatAnimation;
 
   @override
   void initState() {
     super.initState();
     _currentIndex = widget.initialIndex;
+
+    _heartBeatController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 3000),
+    );
+
+    _heartBeatAnimation = TweenSequence(
+      <TweenSequenceItem<double>>[
+        TweenSequenceItem<double>(
+          tween: Tween<double>(begin: 1.0, end: 1.15).chain(CurveTween(curve: Curves.easeInOutSine)),
+          weight: 12.0,
+        ),
+        TweenSequenceItem<double>(
+          tween: Tween<double>(begin: 1.15, end: 1.0).chain(CurveTween(curve: Curves.easeInOutSine)),
+          weight: 12.0,
+        ),
+        TweenSequenceItem<double>(
+          tween: Tween<double>(begin: 1.0, end: 1.1).chain(CurveTween(curve: Curves.easeInOutSine)),
+          weight: 12.0,
+        ),
+        TweenSequenceItem<double>(
+          tween: Tween<double>(begin: 1.1, end: 1.0).chain(CurveTween(curve: Curves.easeInOutSine)),
+          weight: 12.0,
+        ),
+        TweenSequenceItem<double>(
+          tween: ConstantTween<double>(1.0),
+          weight: 52.0,
+        ),
+      ],
+    ).animate(_heartBeatController);
+
     _loadUserAndSongData(autoPlay: true);
   }
 
@@ -79,7 +120,44 @@ class _SongPlayerPageState extends State<SongPlayerPage> {
     _vocalPlayer.dispose();
     _instrumentalPlayer.dispose();
     _syncTimer?.cancel();
+    _heartBeatController.dispose();
+
+    // Clean up files when exiting the player
+    _cleanupLocalFiles();
+
     super.dispose();
+  }
+
+  // File Cleanup Method
+  Future<void> _cleanupLocalFiles() async {
+    try {
+      if (_localVocalPath != null) {
+        final file = File(_localVocalPath!);
+        if (await file.exists()) {
+          await file.delete();
+        }
+      }
+      if (_localInstPath != null) {
+        final file = File(_localInstPath!);
+        if (await file.exists()) {
+          await file.delete();
+        }
+      }
+    } catch (e) {
+      print("Error cleaning up audio files: $e");
+    } finally {
+      _localVocalPath = null;
+      _localInstPath = null;
+    }
+  }
+
+  void _updateHeartbeat() {
+    if (_isFavourite) {
+      _heartBeatController.repeat();
+    } else {
+      _heartBeatController.stop();
+      _heartBeatController.value = 0.0;
+    }
   }
 
   Future<void> _loadUserAndSongData({bool autoPlay = false}) async {
@@ -99,6 +177,7 @@ class _SongPlayerPageState extends State<SongPlayerPage> {
     final bool newFavouriteState = !_isFavourite;
     setState(() {
       _isFavourite = newFavouriteState;
+      _updateHeartbeat();
     });
 
     try {
@@ -115,6 +194,7 @@ class _SongPlayerPageState extends State<SongPlayerPage> {
         if (data['status'] != 'success') {
           setState(() {
             _isFavourite = !newFavouriteState;
+            _updateHeartbeat();
           });
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -125,6 +205,7 @@ class _SongPlayerPageState extends State<SongPlayerPage> {
       } else {
         setState(() {
           _isFavourite = !newFavouriteState;
+          _updateHeartbeat();
         });
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -135,6 +216,7 @@ class _SongPlayerPageState extends State<SongPlayerPage> {
     } catch (e) {
       setState(() {
         _isFavourite = !newFavouriteState;
+        _updateHeartbeat();
       });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -146,7 +228,10 @@ class _SongPlayerPageState extends State<SongPlayerPage> {
 
   Future<void> _checkFavouriteStatus() async {
     if (_currentUserId == null || _currentSongId == null) {
-      setState(() => _isFavourite = false);
+      setState(() {
+        _isFavourite = false;
+        _updateHeartbeat();
+      });
       return;
     }
 
@@ -159,13 +244,20 @@ class _SongPlayerPageState extends State<SongPlayerPage> {
         if (mounted) {
           setState(() {
             _isFavourite = data['is_favourite'] ?? false;
+            _updateHeartbeat();
           });
         }
       } else {
-        if (mounted) setState(() => _isFavourite = false);
+        if (mounted) setState(() {
+          _isFavourite = false;
+          _updateHeartbeat();
+        });
       }
     } catch (e) {
-      if (mounted) setState(() => _isFavourite = false);
+      if (mounted) setState(() {
+        _isFavourite = false;
+        _updateHeartbeat();
+      });
     }
   }
 
@@ -179,6 +271,379 @@ class _SongPlayerPageState extends State<SongPlayerPage> {
     } catch (e) {
       print('Error saving history: $e');
     }
+  }
+
+  // File Download Method for Local Caching
+  Future<String?> _downloadAndCacheFile(String url, String type) async {
+    if (url.isEmpty) return null;
+    try {
+      final dir = await getTemporaryDirectory();
+      // Creates a unique filename based on the song ID and type (vocal/inst)
+      final uniqueFilename = '${_currentSongId}_$type.mp3';
+      final file = File('${dir.path}/$uniqueFilename');
+
+      // If file already exists, use it
+      if (await file.exists()) {
+        final length = await file.length();
+        if (length > 0) {
+          return file.path;
+        }
+      }
+
+      // Otherwise, download it
+      final response = await http.get(Uri.parse(url));
+      if (response.statusCode == 200) {
+        await file.writeAsBytes(response.bodyBytes);
+        return file.path;
+      }
+    } catch (e) {
+      print("Download error for $type: $e");
+    }
+    return null;
+  }
+
+  Future<void> _loadSongData({bool autoPlay = false}) async {
+    setState(() {
+      _isLoading = true;
+      _loadingMessage = "Fetching song data...";
+      title = "Loading...";
+      artist = "";
+      _singersList = [];
+      coverUrl = "";
+      _lyricsLines = [];
+      _currentLyricIndex = -1;
+      _duration = Duration.zero;
+      _dragPosition = null;
+      _isPlaying = false;
+      _isFavourite = false;
+      _updateHeartbeat();
+    });
+
+    _syncTimer?.cancel();
+
+    // Stop players before cleaning up files so the OS releases the file lock
+    await Future.wait([
+      _vocalPlayer.stop(),
+      _instrumentalPlayer.stop()
+    ]);
+
+    // Clean up previous song's files
+    await _cleanupLocalFiles();
+
+    if (_currentIndex < 0 || _currentIndex >= widget.songList.length) {
+      if (mounted) Navigator.pop(context);
+      return;
+    }
+
+    final Map<String, dynamic> currentSong = widget.songList[_currentIndex];
+    _currentSongId = currentSong['sid']?.toString();
+    _addHistoryRecord();
+
+    if (_currentSongId == null) {
+      setState(() => _isLoading = false);
+      return;
+    }
+
+    setState(() {
+      title = currentSong["name"] ?? "Loading...";
+      coverUrl = currentSong["image"] ?? "";
+    });
+
+    _checkFavouriteStatus();
+
+    try {
+      final res = await http.get(Uri.parse(
+          "${AppConfig.baseUrl}getSongDetails.php?sid=$_currentSongId"));
+
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+
+        List<Map<String, String>> parsedSingers = [];
+        if (data['singers'] is List) {
+          parsedSingers = List<dynamic>.from(data['singers']).map((s) {
+            if (s is Map) {
+              return {
+                'id': s['id']?.toString() ?? s['arid']?.toString() ?? '',
+                'name': s['name']?.toString() ?? 'Unknown Singer',
+              };
+            } else {
+              return {
+                'id': '',
+                'name': s.toString(),
+              };
+            }
+          }).toList();
+        } else if (data['singers'] is String || data['singer'] is String) {
+          String sStr = data['singers'] ?? data['singer'] ?? '';
+          parsedSingers = sStr.split(',').map((s) => {
+            'id': data['arid']?.toString() ?? '',
+            'name': s.trim(),
+          }).where((s) => s['name']!.isNotEmpty).toList();
+        } else {
+          parsedSingers = [{'id': '', 'name': 'Unknown Singer'}];
+        }
+
+        setState(() {
+          title = data["name"] ?? currentSong["name"] ?? "Unknown";
+          _singersList = parsedSingers;
+          artist = parsedSingers.isNotEmpty ? parsedSingers.map((s) => s['name']).join(', ') : "Unknown Singer";
+          coverUrl = data["image"] ?? data["poster"] ?? currentSong["image"] ?? "";
+          audioUrl = data["vocal"] ?? "";
+          instrumentalUrl = data["instrumental"] ?? "";
+
+          String rawLyrics = (data["lyrics"] as String? ?? "").replaceAll('\r', '');
+          final RegExp lyricRegex = RegExp(r"\[(\d{2}):(\d{2})(?:\.(\d{2,3}))?\](.*)");
+
+          _lyricsLines = rawLyrics
+              .split("\n")
+              .map((line) {
+            final match = lyricRegex.firstMatch(line.trim());
+            if (match != null) {
+              final min = int.parse(match.group(1)!);
+              final sec = int.parse(match.group(2)!);
+              final msString = match.group(3);
+              final ms = msString != null ? int.parse(msString.padRight(3, '0').substring(0, 3)) : 0;
+              final text = match.group(4)!.trim();
+
+              if (text.isNotEmpty) {
+                return {"time": Duration(minutes: min, seconds: sec, milliseconds: ms), "text": text};
+              }
+            }
+            return null;
+          }).where((e) => e != null).cast<Map<String, dynamic>>().toList();
+
+          _currentLyricIndex = -1;
+          _loadingMessage = "Downloading tracks for perfect sync...\n(This only happens once per song)";
+        });
+
+        // Download both tracks to local storage
+        _localVocalPath = await _downloadAndCacheFile(audioUrl, "vocal");
+        _localInstPath = await _downloadAndCacheFile(instrumentalUrl, "inst");
+
+        // Pass local paths if successful, otherwise fallback to URLs
+        await setupAudio(
+            vocalSource: _localVocalPath ?? audioUrl,
+            instSource: _localInstPath ?? instrumentalUrl,
+            isLocal: (_localVocalPath != null && _localInstPath != null)
+        );
+
+        setState(() {
+          _isLoading = false;
+        });
+
+        if (autoPlay) {
+          await _startPlaybackAndSync();
+        }
+      } else {
+        setState(() => _isLoading = false);
+      }
+    } catch (e) {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> setupAudio({required String vocalSource, required String instSource, required bool isLocal}) async {
+    _durationSub?.cancel();
+    _positionSub?.cancel();
+    _playerStateSub?.cancel();
+    try {
+      if (isLocal) {
+        await Future.wait([
+          _vocalPlayer.setFilePath(vocalSource),
+          _instrumentalPlayer.setFilePath(instSource),
+        ]);
+      } else {
+        await Future.wait([
+          _vocalPlayer.setUrl(vocalSource),
+          _instrumentalPlayer.setUrl(instSource),
+        ]);
+      }
+
+      _durationSub = _instrumentalPlayer.durationStream.listen((d) {
+        if (d != null && d > Duration.zero) {
+          if (mounted) setState(() => _duration = d);
+        }
+      });
+      _positionSub = _instrumentalPlayer.positionStream.listen((pos) {
+        _updateLyricPosition();
+        if (_dragPosition == null) {
+          if (mounted) setState(() {});
+        }
+      });
+
+      _playerStateSub = _instrumentalPlayer.playerStateStream.listen((state) {
+        if (state.processingState == ProcessingState.completed) {
+          if (_isPlaying && mounted) {
+            _handleSongCompletion();
+          }
+        }
+      });
+    } catch (e) {
+      debugPrint("❌ Audio setup error: $e");
+    }
+  }
+
+  void _updateLyricPosition({Duration? atPosition}) {
+    final currentPos = atPosition ?? _instrumentalPlayer.position;
+    int newIndex = -1;
+    for (int i = 0; i < _lyricsLines.length; i++) {
+      if (currentPos >= _lyricsLines[i]["time"]) {
+        newIndex = i;
+      } else {
+        break;
+      }
+    }
+    if (newIndex != _currentLyricIndex) {
+      if (mounted) {
+        setState(() {
+          _currentLyricIndex = newIndex;
+        });
+      }
+    }
+  }
+
+  void _showFullScreenLyrics() {
+    Navigator.of(context).push(PageRouteBuilder(
+      opaque: false,
+      pageBuilder: (BuildContext context, _, __) => FullScreenLyricPage(
+        lyricsLines: _lyricsLines,
+        initialLyricIndex: _currentLyricIndex,
+        positionStream: _instrumentalPlayer.positionStream,
+        title: title,
+        artist: artist,
+      ),
+      transitionsBuilder: (context, animation, secondaryAnimation, child) =>
+          FadeTransition(opacity: animation, child: child),
+    ));
+  }
+
+  Future<void> _startPlaybackAndSync() async {
+    if (_isLoading) return;
+    _syncTimer?.cancel();
+    if (mounted) setState(() => _isPlaying = true);
+
+    final expectedVPos = _instrumentalPlayer.position + _vocalOffset;
+    if ((_vocalPlayer.position - expectedVPos).inMilliseconds.abs() > 5) {
+      await _vocalPlayer.seek(expectedVPos);
+    }
+
+    await Future.wait([
+      _instrumentalPlayer.play(),
+      _vocalPlayer.play(),
+    ]);
+
+    // Timer set to 3000ms (3 seconds) to save processing power
+    _syncTimer = Timer.periodic(const Duration(milliseconds: 3000), (_) async {
+      if (!_isPlaying) return;
+      if (_vocalPlayer.processingState != ProcessingState.ready ||
+          _instrumentalPlayer.processingState != ProcessingState.ready) {
+        return;
+      }
+
+      try {
+        final currentIPos = _instrumentalPlayer.position;
+        final targetVPos = currentIPos + _vocalOffset;
+        final diff = (_vocalPlayer.position - targetVPos).inMilliseconds;
+
+        if (diff.abs() > 5) {
+          await _vocalPlayer.seek(targetVPos);
+        }
+      } catch (e) {
+        print("Sync timer error: $e");
+      }
+    });
+  }
+
+  Future<void> _pausePlayback() async {
+    _syncTimer?.cancel();
+    await Future.wait([_vocalPlayer.pause(), _instrumentalPlayer.pause()]);
+    if (mounted) setState(() => _isPlaying = false);
+  }
+
+  Future<void> togglePlayPause() async {
+    if (_isPlaying) {
+      await _pausePlayback();
+    } else {
+      await _startPlaybackAndSync();
+    }
+  }
+
+  Future<void> seek(Duration newPos) async {
+    _updateLyricPosition(atPosition: newPos);
+    if (mounted) setState(() {});
+
+    final bool wasPlaying = _isPlaying;
+    await _pausePlayback();
+
+    // Master seeks first
+    await _instrumentalPlayer.seek(newPos);
+
+    var vocalSeekPos = _instrumentalPlayer.position + _vocalOffset;
+    if (vocalSeekPos < Duration.zero) vocalSeekPos = Duration.zero;
+
+    await _vocalPlayer.seek(vocalSeekPos);
+
+    if (wasPlaying) {
+      await _startPlaybackAndSync();
+    }
+  }
+
+  String formatTime(Duration d) {
+    final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
+    return "$m:$s";
+  }
+
+  void _handleSongCompletion() {
+    switch (_repeatMode) {
+      case RepeatMode.one:
+        seek(Duration.zero);
+        break;
+      case RepeatMode.all:
+      default:
+        _playNext();
+        break;
+    }
+  }
+
+  void _toggleRepeatMode() {
+    setState(() {
+      if (_repeatMode == RepeatMode.all) {
+        _repeatMode = RepeatMode.one;
+      } else {
+        _repeatMode = RepeatMode.all;
+      }
+    });
+  }
+
+  Widget _getRepeatIcon() {
+    const double iconSize = 28.0;
+
+    switch (_repeatMode) {
+      case RepeatMode.one:
+        return const Icon(Icons.repeat_one_rounded, color: Colors.white, size: iconSize);
+      case RepeatMode.all:
+      default:
+        return const Icon(Icons.shuffle_rounded, color: Colors.white, size: iconSize);
+    }
+  }
+
+  void _playNext() {
+    int newIndex = _currentIndex + 1;
+    if (newIndex >= widget.songList.length) {
+      newIndex = 0;
+    }
+    if (mounted) setState(() => _currentIndex = newIndex);
+    _loadSongData(autoPlay: true);
+  }
+
+  void _playPrevious() {
+    int newIndex = _currentIndex - 1;
+    if (newIndex < 0) {
+      newIndex = widget.songList.length - 1;
+    }
+    if (mounted) setState(() => _currentIndex = newIndex);
+    _loadSongData(autoPlay: true);
   }
 
   void _showPlaylistDialog() {
@@ -291,325 +756,27 @@ class _SongPlayerPageState extends State<SongPlayerPage> {
     }
   }
 
-  Future<void> _loadSongData({bool autoPlay = false}) async {
-    setState(() {
-      _isLoading = true;
-      title = "Loading...";
-      artist = "";
-      _singersList = [];
-      coverUrl = "";
-      _lyricsLines = [];
-      _currentLyricIndex = -1;
-      _duration = Duration.zero;
-      _dragPosition = null;
-      _isPlaying = false;
-      _isFavourite = false;
-    });
-
-    _syncTimer?.cancel();
-    await Future.wait([
-      _vocalPlayer.stop(),
-      _instrumentalPlayer.stop()
-    ]);
-
-    if (_currentIndex < 0 || _currentIndex >= widget.songList.length) {
-      if (mounted) Navigator.pop(context);
-      return;
-    }
-
-    final Map<String, dynamic> currentSong = widget.songList[_currentIndex];
-
-    _currentSongId = currentSong['sid']?.toString();
-
-    _addHistoryRecord();
-
-    if (_currentSongId == null) {
-      setState(() => _isLoading = false);
-      return;
-    }
-
-    setState(() {
-      title = currentSong["name"] ?? "Loading...";
-      coverUrl = currentSong["image"] ?? "";
-    });
-
-    _checkFavouriteStatus();
-
-    try {
-      final res = await http.get(Uri.parse(
-          "${AppConfig.baseUrl}getSongDetails.php?sid=$_currentSongId"));
-
-      if (res.statusCode == 200) {
-        final data = jsonDecode(res.body);
-
-        List<Map<String, String>> parsedSingers = [];
-        if (data['singers'] is List) {
-          parsedSingers = List<dynamic>.from(data['singers']).map((s) {
-            if (s is Map) {
-              return {
-                'id': s['id']?.toString() ?? s['arid']?.toString() ?? '',
-                'name': s['name']?.toString() ?? 'Unknown Singer',
-              };
-            } else {
-              return {
-                'id': '',
-                'name': s.toString(),
-              };
-            }
-          }).toList();
-        } else if (data['singers'] is String || data['singer'] is String) {
-          String sStr = data['singers'] ?? data['singer'] ?? '';
-          parsedSingers = sStr.split(',').map((s) => {
-            'id': data['arid']?.toString() ?? '',
-            'name': s.trim(),
-          }).where((s) => s['name']!.isNotEmpty).toList();
-        } else {
-          parsedSingers = [{'id': '', 'name': 'Unknown Singer'}];
-        }
-
-        setState(() {
-          title = data["name"] ?? currentSong["name"] ?? "Unknown";
-          _singersList = parsedSingers;
-          artist = parsedSingers.isNotEmpty ? parsedSingers.map((s) => s['name']).join(', ') : "Unknown Singer";
-          coverUrl = data["image"] ?? data["poster"] ?? currentSong["image"] ?? "";
-          audioUrl = data["vocal"] ?? "";
-          instrumentalUrl = data["instrumental"] ?? "";
-
-          String rawLyrics = (data["lyrics"] as String? ?? "").replaceAll('\r', '');
-
-          final RegExp lyricRegex =
-          RegExp(r"\[(\d{2}):(\d{2})(?:\.(\d{2,3}))?\](.*)");
-
-          _lyricsLines = rawLyrics
-              .split("\n")
-              .map((line) {
-            final match = lyricRegex.firstMatch(line.trim());
-
-            if (match != null) {
-              final min = int.parse(match.group(1)!);
-              final sec = int.parse(match.group(2)!);
-              final msString = match.group(3);
-              final ms = msString != null ? int.parse(msString.padRight(3, '0').substring(0, 3)) : 0;
-              final text = match.group(4)!.trim();
-
-              if (text.isNotEmpty) {
-                return {"time": Duration(minutes: min, seconds: sec, milliseconds: ms), "text": text};
-              }
-            }
-            return null;
-          }).where((e) => e != null).cast<Map<String, dynamic>>().toList();
-
-          _currentLyricIndex = -1;
-        });
-
-        await setupAudio();
-
-        setState(() {
-          _isLoading = false;
-        });
-
-        if (autoPlay) {
-          await _startPlaybackAndSync();
-        }
-      } else {
-        setState(() => _isLoading = false);
-      }
-    } catch (e) {
-      setState(() => _isLoading = false);
-    }
-  }
-
-  Future<void> setupAudio() async {
-    _durationSub?.cancel();
-    _positionSub?.cancel();
-    _playerStateSub?.cancel();
-    try {
-      await Future.wait([
-        _vocalPlayer.setUrl(audioUrl),
-        _instrumentalPlayer.setUrl(instrumentalUrl),
-      ]);
-
-      _durationSub = _instrumentalPlayer.durationStream.listen((d) {
-        if (d != null && d > Duration.zero) {
-          if (mounted) setState(() => _duration = d);
-        }
-      });
-      _positionSub = _instrumentalPlayer.positionStream.listen((pos) {
-        _updateLyricPosition();
-        if (_dragPosition == null) {
-          if (mounted) setState(() {});
-        }
-      });
-
-      _playerStateSub = _instrumentalPlayer.playerStateStream.listen((state) {
-        if (state.processingState == ProcessingState.completed) {
-          if (_isPlaying && mounted) {
-            _handleSongCompletion();
-          }
-        }
-      });
-    } catch (e) {
-      debugPrint("❌ Audio setup error: $e");
-    }
-  }
-
-  void _updateLyricPosition({Duration? atPosition}) {
-    final currentPos = atPosition ?? _instrumentalPlayer.position;
-    int newIndex = -1;
-    for (int i = 0; i < _lyricsLines.length; i++) {
-      if (currentPos >= _lyricsLines[i]["time"]) {
-        newIndex = i;
-      } else {
-        break;
-      }
-    }
-    if (newIndex != _currentLyricIndex) {
-      if (mounted) {
-        setState(() {
-          _currentLyricIndex = newIndex;
-        });
-      }
-    }
-  }
-
-  void _showFullScreenLyrics() {
-    Navigator.of(context).push(PageRouteBuilder(
-      opaque: false,
-      pageBuilder: (BuildContext context, _, __) => FullScreenLyricPage(
-        lyricsLines: _lyricsLines,
-        initialLyricIndex: _currentLyricIndex,
-        positionStream: _instrumentalPlayer.positionStream,
-        title: title,
-        artist: artist,
-      ),
-      transitionsBuilder: (context, animation, secondaryAnimation, child) =>
-          FadeTransition(opacity: animation, child: child),
-    ));
-  }
-
-  Future<void> _startPlaybackAndSync() async {
-    if (_isLoading) return;
-    _syncTimer?.cancel();
-    if (mounted) setState(() => _isPlaying = true);
-
-    await Future.wait([_vocalPlayer.play(), _instrumentalPlayer.play()]);
-
-    _syncTimer = Timer.periodic(const Duration(milliseconds: 0), (_) async {
-      try {
-        final vPos = _vocalPlayer.position;
-        final iPos = _instrumentalPlayer.position;
-        final expectedVPos = iPos + _vocalOffset;
-        final diff = (vPos - expectedVPos).inMilliseconds;
-        if (diff.abs() > 20) {
-          await _vocalPlayer.seek(expectedVPos);
-        }
-      } catch (e) {
-        print("Sync timer error: $e");
-        _syncTimer?.cancel();
-      }
-    });
-  }
-
-  Future<void> _pausePlayback() async {
-    _syncTimer?.cancel();
-    await Future.wait([_vocalPlayer.pause(), _instrumentalPlayer.pause()]);
-    if (mounted) setState(() => _isPlaying = false);
-  }
-
-  Future<void> togglePlayPause() async {
-    if (_isPlaying) {
-      await _pausePlayback();
-    } else {
-      await _startPlaybackAndSync();
-    }
-  }
-
-  Future<void> seek(Duration newPos) async {
-    _updateLyricPosition(atPosition: newPos);
-    if (mounted) setState(() {});
-
-    final bool wasPlaying = _isPlaying;
-
-    await _pausePlayback();
-    await _instrumentalPlayer.seek(newPos);
-
-    final Duration actualInstrumentalPos = _instrumentalPlayer.position;
-    var vocalSeekPos = actualInstrumentalPos + _vocalOffset;
-    if (vocalSeekPos < Duration.zero) vocalSeekPos = Duration.zero;
-
-    await _vocalPlayer.seek(vocalSeekPos);
-
-    if (wasPlaying) {
-      await _startPlaybackAndSync();
-    }
-  }
-
-  String formatTime(Duration d) {
-    final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
-    final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
-    return "$m:$s";
-  }
-
-  void _handleSongCompletion() {
-    switch (_repeatMode) {
-      case RepeatMode.one:
-        seek(Duration.zero);
-        break;
-      case RepeatMode.all:
-      default:
-        _playNext();
-        break;
-    }
-  }
-
-  void _toggleRepeatMode() {
-    setState(() {
-      if (_repeatMode == RepeatMode.all) {
-        _repeatMode = RepeatMode.one;
-      } else {
-        _repeatMode = RepeatMode.all;
-      }
-    });
-  }
-
-  Widget _getRepeatIcon() {
-    const Color iconColor = Colors.white;
-    const double iconSize = 24.0;
-
-    switch (_repeatMode) {
-      case RepeatMode.one:
-        return const Icon(Icons.shuffle, color: iconColor, size: iconSize);
-      case RepeatMode.all:
-      default:
-        return const Icon(Icons.repeat_one, color: iconColor, size: iconSize);
-    }
-  }
-
-  void _playNext() {
-    int newIndex = _currentIndex + 1;
-    if (newIndex >= widget.songList.length) {
-      newIndex = 0;
-    }
-    if (mounted) setState(() => _currentIndex = newIndex);
-    _loadSongData(autoPlay: true);
-  }
-
-  void _playPrevious() {
-    int newIndex = _currentIndex - 1;
-    if (newIndex < 0) {
-      newIndex = widget.songList.length - 1;
-    }
-    if (mounted) setState(() => _currentIndex = newIndex);
-    _loadSongData(autoPlay: true);
-  }
-
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Scaffold(
-        backgroundColor: Color(0xFF1C1C1E),
+      return Scaffold(
+        backgroundColor: const Color(0xFF1C1C1E),
         body: Center(
-          child: CircularProgressIndicator(color: Color(0xFFFF00FF)),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const CircularProgressIndicator(color: Color(0xFFFF00FF)),
+              const SizedBox(height: 20),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 40.0),
+                child: Text(
+                  _loadingMessage,
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.cabinSketch(color: Colors.white70, fontSize: 16),
+                ),
+              ),
+            ],
+          ),
         ),
       );
     }
@@ -673,7 +840,15 @@ class _SongPlayerPageState extends State<SongPlayerPage> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white, size: 28), onPressed: () => Navigator.pop(context)),
+                      SizedBox(
+                        width: 48,
+                        height: 48,
+                        child: IconButton(
+                          padding: EdgeInsets.zero,
+                          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 28),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                      ),
                       Expanded(
                         child: RichText(
                           textAlign: TextAlign.center,
@@ -686,13 +861,44 @@ class _SongPlayerPageState extends State<SongPlayerPage> {
                           ),
                         ),
                       ),
-                      IconButton(
-                        icon: Icon(
-                          _isFavourite ? Icons.favorite : Icons.favorite_border,
-                          color: _isFavourite ? Colors.redAccent : Colors.white,
-                          size: 28,
+                      GestureDetector(
+                        onTap: _toggleFavourite,
+                        child: Container(
+                          width: 48,
+                          height: 48,
+                          alignment: Alignment.center,
+                          padding: const EdgeInsets.all(1.0),
+                          child: _isFavourite
+                              ? AnimatedBuilder(
+                            animation: _heartBeatAnimation,
+                            builder: (context, child) {
+                              return Transform.scale(
+                                scale: _heartBeatAnimation.value,
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.pinkAccent.withOpacity(0.5),
+                                        blurRadius: 10 * _heartBeatAnimation.value,
+                                        spreadRadius: 0.2 * _heartBeatAnimation.value,
+                                      ),
+                                    ],
+                                  ),
+                                  child: const Text(
+                                    "❤️",
+                                    style: TextStyle(fontSize: 20),
+                                  ),
+                                ),
+                              );
+                            },
+                          )
+                              : const Icon(
+                            Icons.favorite_border_rounded,
+                            color: Colors.redAccent,
+                            size: 28,
+                          ),
                         ),
-                        onPressed: _toggleFavourite,
                       ),
                     ],
                   ),
@@ -711,7 +917,7 @@ class _SongPlayerPageState extends State<SongPlayerPage> {
                     child: Image.network(
                       coverUrl,
                       fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => Container(color: Colors.grey[800], child: const Icon(Icons.music_note, color: Colors.white70, size: 120)),
+                      errorBuilder: (context, error, stackTrace) => Container(color: Colors.grey[800], child: const Icon(Icons.music_note_rounded, color: Colors.white70, size: 120)),
                     ),
                   ),
                 ),
@@ -866,7 +1072,7 @@ class _SongPlayerPageState extends State<SongPlayerPage> {
                         onPressed: _toggleRepeatMode,
                       ),
                       IconButton(
-                          icon: const Icon(Icons.skip_previous, color: Colors.white, size: 36),
+                          icon: const Icon(Icons.skip_previous_rounded, color: Colors.white, size: 36),
                           onPressed: _playPrevious
                       ),
                       GestureDetector(
@@ -907,11 +1113,11 @@ class _SongPlayerPageState extends State<SongPlayerPage> {
                         ),
                       ),
                       IconButton(
-                          icon: const Icon(Icons.skip_next, color: Colors.white, size: 36),
+                          icon: const Icon(Icons.skip_next_rounded, color: Colors.white, size: 36),
                           onPressed: _playNext
                       ),
                       IconButton(
-                          icon: const Icon(Icons.queue_music, color: Colors.white, size: 28),
+                          icon: const Icon(Icons.queue_music_rounded, color: Colors.white, size: 28),
                           onPressed: () {
                             if (_currentSongId == null) {
                               ScaffoldMessenger.of(context).showSnackBar(
@@ -997,7 +1203,7 @@ class _FullScreenLyricPageState extends State<FullScreenLyricPage> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.close, color: Colors.white, size: 28),
+          icon: const Icon(Icons.close_rounded, color: Colors.white, size: 28),
           onPressed: () => Navigator.pop(context),
         ),
         title: Column(
@@ -1391,7 +1597,7 @@ class _AddSongToPlaylistDialogState extends State<_AddSongToPlaylistDialog> {
           final String songCount = playlist['song_count']?.toString() ?? '0';
           final String songText = (songCount == '1') ? 'Song' : 'Songs';
           final bool containsSong = playlist['contains_song'] ?? false;
-          final IconData iconData = containsSong ? Icons.remove : Icons.add;
+          final IconData iconData = containsSong ? Icons.remove_rounded : Icons.add_rounded;
           final Color iconColor = containsSong ? Colors.redAccent : Colors.green;
 
           return ListTile(
@@ -1495,7 +1701,7 @@ class _AddSongToPlaylistDialogState extends State<_AddSongToPlaylistDialog> {
                   top: 0,
                   right: 0,
                   child: IconButton(
-                    icon: const Icon(Icons.close, color: Colors.white),
+                    icon: const Icon(Icons.close_rounded, color: Colors.white),
                     onPressed: () => Navigator.of(context).pop(),
                   ),
                 ),
@@ -1519,7 +1725,7 @@ class _AddSongToPlaylistDialogState extends State<_AddSongToPlaylistDialog> {
                           end: Alignment.bottomRight,
                         ),
                       ),
-                      child: const Icon(Icons.add, color: Colors.white),
+                      child: const Icon(Icons.add_rounded, color: Colors.white),
                     ),
                   ),
                 ),
