@@ -6,6 +6,7 @@ import 'dart:convert';
 import 'dart:ui';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
+import 'package:video_player/video_player.dart';
 import 'config.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -34,10 +35,16 @@ class SongPlayerPage extends StatefulWidget {
 class _SongPlayerPageState extends State<SongPlayerPage> with TickerProviderStateMixin {
   final AudioPlayer _vocalPlayer = AudioPlayer();
   final AudioPlayer _instrumentalPlayer = AudioPlayer();
+  VideoPlayerController? _videoController;
 
   bool _isPlaying = false;
   bool _isLoading = true;
-  String _loadingMessage = "Loading...";
+  String _loadingMessage = "Initializing...";
+
+  // Loading sync flags
+  bool _isVideoFinished = false;
+  bool _isAudioReady = false;
+  bool _autoPlayRequested = false;
 
   Duration _duration = Duration.zero;
   Duration? _dragPosition;
@@ -65,7 +72,6 @@ class _SongPlayerPageState extends State<SongPlayerPage> with TickerProviderStat
   String? _currentUserId;
   String? _currentSongId;
 
-  // Track local files for cleanup
   String? _localVocalPath;
   String? _localInstPath;
 
@@ -78,6 +84,16 @@ class _SongPlayerPageState extends State<SongPlayerPage> with TickerProviderStat
   void initState() {
     super.initState();
     _currentIndex = widget.initialIndex;
+
+    _videoController = VideoPlayerController.asset('assets/logo.mp4')
+      ..initialize().then((_) {
+        _videoController?.setVolume(0.0); // Muted
+        _videoController?.setLooping(false); // Do not loop, stop at last frame
+        _videoController?.play();
+        if (mounted) setState(() {});
+      });
+
+    _videoController?.addListener(_videoListener);
 
     _heartBeatController = AnimationController(
       vsync: this,
@@ -112,23 +128,48 @@ class _SongPlayerPageState extends State<SongPlayerPage> with TickerProviderStat
     _loadUserAndSongData(autoPlay: true);
   }
 
+  void _videoListener() {
+    final value = _videoController?.value;
+    if (value != null && value.isInitialized) {
+      if (value.position >= value.duration && value.duration > Duration.zero) {
+        if (!_isVideoFinished) {
+          _isVideoFinished = true;
+          _checkLoadingStatus();
+        }
+      }
+    }
+  }
+
+  void _checkLoadingStatus() {
+    if (_isAudioReady && _isVideoFinished) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+        if (_autoPlayRequested) {
+          _startPlaybackAndSync();
+        }
+      }
+    }
+  }
+
   @override
   void dispose() {
     _positionSub?.cancel();
     _durationSub?.cancel();
     _playerStateSub?.cancel();
+    _videoController?.removeListener(_videoListener);
     _vocalPlayer.dispose();
     _instrumentalPlayer.dispose();
     _syncTimer?.cancel();
     _heartBeatController.dispose();
+    _videoController?.dispose();
 
-    // Clean up files when exiting the player
     _cleanupLocalFiles();
 
     super.dispose();
   }
 
-  // File Cleanup Method
   Future<void> _cleanupLocalFiles() async {
     try {
       if (_localVocalPath != null) {
@@ -144,7 +185,7 @@ class _SongPlayerPageState extends State<SongPlayerPage> with TickerProviderStat
         }
       }
     } catch (e) {
-      print("Error cleaning up audio files: $e");
+      debugPrint("Error cleaning up audio files: $e");
     } finally {
       _localVocalPath = null;
       _localInstPath = null;
@@ -269,20 +310,17 @@ class _SongPlayerPageState extends State<SongPlayerPage> with TickerProviderStat
           "${AppConfig.baseUrl}history.php?user_id=$_currentUserId&song_id=$_currentSongId");
       await http.get(url);
     } catch (e) {
-      print('Error saving history: $e');
+      debugPrint('Error saving history: $e');
     }
   }
 
-  // File Download Method for Local Caching
   Future<String?> _downloadAndCacheFile(String url, String type) async {
     if (url.isEmpty) return null;
     try {
       final dir = await getTemporaryDirectory();
-      // Creates a unique filename based on the song ID and type (vocal/inst)
       final uniqueFilename = '${_currentSongId}_$type.mp3';
       final file = File('${dir.path}/$uniqueFilename');
 
-      // If file already exists, use it
       if (await file.exists()) {
         final length = await file.length();
         if (length > 0) {
@@ -290,14 +328,13 @@ class _SongPlayerPageState extends State<SongPlayerPage> with TickerProviderStat
         }
       }
 
-      // Otherwise, download it
       final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
         await file.writeAsBytes(response.bodyBytes);
         return file.path;
       }
     } catch (e) {
-      print("Download error for $type: $e");
+      debugPrint("Download error for $type: $e");
     }
     return null;
   }
@@ -316,18 +353,24 @@ class _SongPlayerPageState extends State<SongPlayerPage> with TickerProviderStat
       _dragPosition = null;
       _isPlaying = false;
       _isFavourite = false;
+
+      // Reset loading sync states
+      _isAudioReady = false;
+      _isVideoFinished = false;
+      _autoPlayRequested = autoPlay;
+
       _updateHeartbeat();
     });
 
+    _videoController?.seekTo(Duration.zero);
+    _videoController?.play();
     _syncTimer?.cancel();
 
-    // Stop players before cleaning up files so the OS releases the file lock
     await Future.wait([
       _vocalPlayer.stop(),
       _instrumentalPlayer.stop()
     ]);
 
-    // Clean up previous song's files
     await _cleanupLocalFiles();
 
     if (_currentIndex < 0 || _currentIndex >= widget.songList.length) {
@@ -356,7 +399,18 @@ class _SongPlayerPageState extends State<SongPlayerPage> with TickerProviderStat
           "${AppConfig.baseUrl}getSongDetails.php?sid=$_currentSongId"));
 
       if (res.statusCode == 200) {
-        final data = jsonDecode(res.body);
+        var data;
+        try {
+          data = jsonDecode(res.body);
+        } catch (e) {
+          debugPrint("❌ PHP ERROR DETECTED! Raw API Response:");
+          debugPrint(res.body);
+          setState(() {
+            _isLoading = false;
+            title = "Error loading song";
+          });
+          return;
+        }
 
         List<Map<String, String>> parsedSingers = [];
         if (data['singers'] is List) {
@@ -416,24 +470,18 @@ class _SongPlayerPageState extends State<SongPlayerPage> with TickerProviderStat
           _loadingMessage = "Downloading tracks for perfect sync...\n(This only happens once per song)";
         });
 
-        // Download both tracks to local storage
         _localVocalPath = await _downloadAndCacheFile(audioUrl, "vocal");
         _localInstPath = await _downloadAndCacheFile(instrumentalUrl, "inst");
 
-        // Pass local paths if successful, otherwise fallback to URLs
         await setupAudio(
             vocalSource: _localVocalPath ?? audioUrl,
             instSource: _localInstPath ?? instrumentalUrl,
             isLocal: (_localVocalPath != null && _localInstPath != null)
         );
 
-        setState(() {
-          _isLoading = false;
-        });
+        _isAudioReady = true;
+        _checkLoadingStatus();
 
-        if (autoPlay) {
-          await _startPlaybackAndSync();
-        }
       } else {
         setState(() => _isLoading = false);
       }
@@ -532,7 +580,6 @@ class _SongPlayerPageState extends State<SongPlayerPage> with TickerProviderStat
       _vocalPlayer.play(),
     ]);
 
-    // Timer set to 3000ms (3 seconds) to save processing power
     _syncTimer = Timer.periodic(const Duration(milliseconds: 3000), (_) async {
       if (!_isPlaying) return;
       if (_vocalPlayer.processingState != ProcessingState.ready ||
@@ -549,7 +596,7 @@ class _SongPlayerPageState extends State<SongPlayerPage> with TickerProviderStat
           await _vocalPlayer.seek(targetVPos);
         }
       } catch (e) {
-        print("Sync timer error: $e");
+        debugPrint("Sync timer error: $e");
       }
     });
   }
@@ -575,13 +622,13 @@ class _SongPlayerPageState extends State<SongPlayerPage> with TickerProviderStat
     final bool wasPlaying = _isPlaying;
     await _pausePlayback();
 
-    // Master seeks first
-    await _instrumentalPlayer.seek(newPos);
-
-    var vocalSeekPos = _instrumentalPlayer.position + _vocalOffset;
+    var vocalSeekPos = newPos + _vocalOffset;
     if (vocalSeekPos < Duration.zero) vocalSeekPos = Duration.zero;
 
-    await _vocalPlayer.seek(vocalSeekPos);
+    await Future.wait([
+      _instrumentalPlayer.seek(newPos),
+      _vocalPlayer.seek(vocalSeekPos),
+    ]);
 
     if (wasPlaying) {
       await _startPlaybackAndSync();
@@ -760,19 +807,32 @@ class _SongPlayerPageState extends State<SongPlayerPage> with TickerProviderStat
   Widget build(BuildContext context) {
     if (_isLoading) {
       return Scaffold(
-        backgroundColor: const Color(0xFF1C1C1E),
+        backgroundColor: Colors.black,
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const CircularProgressIndicator(color: Color(0xFFFF00FF)),
-              const SizedBox(height: 20),
+              if (_videoController != null && _videoController!.value.isInitialized)
+                SizedBox(
+                  width: MediaQuery.of(context).size.width * 0.8,
+                  child: AspectRatio(
+                    aspectRatio: _videoController!.value.aspectRatio,
+                    child: VideoPlayer(_videoController!),
+                  ),
+                )
+              else
+                const CircularProgressIndicator(color: Colors.pinkAccent),
+              const SizedBox(height: 30),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 40.0),
                 child: Text(
                   _loadingMessage,
                   textAlign: TextAlign.center,
-                  style: GoogleFonts.cabinSketch(color: Colors.white70, fontSize: 16),
+                  style: GoogleFonts.cabinSketch(
+                    color: Colors.pinkAccent,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ],
@@ -845,7 +905,7 @@ class _SongPlayerPageState extends State<SongPlayerPage> with TickerProviderStat
                         height: 48,
                         child: IconButton(
                           padding: EdgeInsets.zero,
-                          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 28),
+                          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 28),
                           onPressed: () => Navigator.pop(context),
                         ),
                       ),
@@ -1027,13 +1087,20 @@ class _SongPlayerPageState extends State<SongPlayerPage> with TickerProviderStat
                     children: [
                       SliderTheme(
                         data: SliderTheme.of(context).copyWith(
-                          trackHeight: 3.0,
+                          trackHeight: 4.0,
+                          trackShape: GradientRectSliderTrackShape(
+                            gradient: LinearGradient(
+                              colors: [
+                                Colors.pinkAccent,
+                                Colors.blueAccent.withOpacity(0.8),
+                              ],
+                            ),
+                          ),
                           thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6.0),
                           overlayShape: const RoundSliderOverlayShape(overlayRadius: 10.0),
-                          activeTrackColor: neonPink,
                           inactiveTrackColor: Colors.white24,
-                          thumbColor: neonPink,
-                          overlayColor: neonPink.withOpacity(0.3),
+                          thumbColor: Colors.white,
+                          overlayColor: Colors.blueAccent.withOpacity(0.3),
                         ),
                         child: Slider(
                           min: 0.0,
@@ -1735,5 +1802,80 @@ class _AddSongToPlaylistDialogState extends State<_AddSongToPlaylistDialog> {
         ),
       ),
     );
+  }
+}
+
+// ==========================================
+// CUSTOM GRADIENT SLIDER TRACK SHAPE
+// ==========================================
+class GradientRectSliderTrackShape extends SliderTrackShape with BaseSliderTrackShape {
+  final LinearGradient gradient;
+
+  const GradientRectSliderTrackShape({
+    this.gradient = const LinearGradient(
+      colors: [Colors.pinkAccent, Colors.blueAccent],
+    ),
+  });
+
+  @override
+  void paint(
+      PaintingContext context,
+      Offset offset, {
+        required RenderBox parentBox,
+        required SliderThemeData sliderTheme,
+        required Animation<double> enableAnimation,
+        required TextDirection textDirection,
+        required Offset thumbCenter,
+        Offset? secondaryOffset,
+        bool isDiscrete = false,
+        bool isEnabled = false,
+        double additionalActiveTrackHeight = 0,
+      }) {
+    if (sliderTheme.trackHeight == null || sliderTheme.trackHeight! <= 0) return;
+
+    final Rect trackRect = getPreferredRect(
+      parentBox: parentBox,
+      offset: offset,
+      sliderTheme: sliderTheme,
+      isEnabled: isEnabled,
+      isDiscrete: isDiscrete,
+    );
+
+    final activeTrackRadius = Radius.circular(trackRect.height / 2);
+
+    // Background (Inactive) Track
+    context.canvas.drawRRect(
+      RRect.fromLTRBAndCorners(
+        thumbCenter.dx,
+        trackRect.top,
+        trackRect.right,
+        trackRect.bottom,
+        topRight: activeTrackRadius,
+        bottomRight: activeTrackRadius,
+      ),
+      Paint()..color = sliderTheme.inactiveTrackColor!,
+    );
+
+    // Active Gradient Track
+    final activeRect = Rect.fromLTRB(
+      trackRect.left,
+      trackRect.top,
+      thumbCenter.dx,
+      trackRect.bottom,
+    );
+
+    if (activeRect.width > 0) {
+      context.canvas.drawRRect(
+        RRect.fromLTRBAndCorners(
+          activeRect.left,
+          activeRect.top,
+          activeRect.right,
+          activeRect.bottom,
+          topLeft: activeTrackRadius,
+          bottomLeft: activeTrackRadius,
+        ),
+        Paint()..shader = gradient.createShader(activeRect),
+      );
+    }
   }
 }
