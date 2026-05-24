@@ -45,6 +45,7 @@ class _SongPlayerPageState extends State<SongPlayerPage> with TickerProviderStat
   bool _isVideoFinished = false;
   bool _isAudioReady = false;
   bool _autoPlayRequested = false;
+  bool _isVideoReadyToDisplay = false; // NEW FLAG FOR FADE-IN
 
   Duration _duration = Duration.zero;
   Duration? _dragPosition;
@@ -89,8 +90,16 @@ class _SongPlayerPageState extends State<SongPlayerPage> with TickerProviderStat
       ..initialize().then((_) {
         _videoController?.setVolume(0.0); // Muted
         _videoController?.setLooping(false); // Do not loop, stop at last frame
-        _videoController?.play();
-        if (mounted) setState(() {});
+        _videoController?.play().then((_) {
+          // Add a tiny delay to allow the white flash to happen invisibly, then fade in
+          Future.delayed(const Duration(milliseconds: 150), () {
+            if (mounted) {
+              setState(() {
+                _isVideoReadyToDisplay = true;
+              });
+            }
+          });
+        });
       });
 
     _videoController?.addListener(_videoListener);
@@ -467,7 +476,6 @@ class _SongPlayerPageState extends State<SongPlayerPage> with TickerProviderStat
           }).where((e) => e != null).cast<Map<String, dynamic>>().toList();
 
           _currentLyricIndex = -1;
-          _loadingMessage = "Downloading tracks for perfect sync...\n(This only happens once per song)";
         });
 
         _localVocalPath = await _downloadAndCacheFile(audioUrl, "vocal");
@@ -572,7 +580,10 @@ class _SongPlayerPageState extends State<SongPlayerPage> with TickerProviderStat
 
     final expectedVPos = _instrumentalPlayer.position + _vocalOffset;
     if ((_vocalPlayer.position - expectedVPos).inMilliseconds.abs() > 5) {
-      await _vocalPlayer.seek(expectedVPos);
+      await Future.wait([
+        _instrumentalPlayer.seek(_instrumentalPlayer.position),
+        _vocalPlayer.seek(expectedVPos),
+      ]);
     }
 
     await Future.wait([
@@ -807,35 +818,30 @@ class _SongPlayerPageState extends State<SongPlayerPage> with TickerProviderStat
   Widget build(BuildContext context) {
     if (_isLoading) {
       return Scaffold(
-        backgroundColor: Colors.black,
+        backgroundColor: Colors.black, // Pure black background
         body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              if (_videoController != null && _videoController!.value.isInitialized)
-                SizedBox(
-                  width: MediaQuery.of(context).size.width * 0.8,
-                  child: AspectRatio(
-                    aspectRatio: _videoController!.value.aspectRatio,
-                    child: VideoPlayer(_videoController!),
+          child: AnimatedOpacity(
+            opacity: _isVideoReadyToDisplay ? 1.0 : 0.0,
+            duration: const Duration(milliseconds: 300), // Smooth fade in
+            child: _videoController != null && _videoController!.value.isInitialized
+                ? Container(
+              width: MediaQuery.of(context).size.width * 0.8,
+              decoration: BoxDecoration(
+                color: Colors.black, // Explicitly black background
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(1.0), // Deep black shadow
+                    blurRadius: 50.0, // High blur to blend edges
+                    spreadRadius: 20.0, // Push shadow outwards
                   ),
-                )
-              else
-                const CircularProgressIndicator(color: Colors.pinkAccent),
-              const SizedBox(height: 30),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 40.0),
-                child: Text(
-                  _loadingMessage,
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.cabinSketch(
-                    color: Colors.pinkAccent,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+                ],
               ),
-            ],
+              child: AspectRatio(
+                aspectRatio: _videoController!.value.aspectRatio,
+                child: VideoPlayer(_videoController!),
+              ),
+            )
+                : const SizedBox.shrink(), // No spinner, pure black until video is ready
           ),
         ),
       );
