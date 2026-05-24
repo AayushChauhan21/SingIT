@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:just_audio/just_audio.dart';
+import 'package:flutter_soloud/flutter_soloud.dart';
 import 'package:http/http.dart' as http;
 import 'dart:async';
 import 'dart:convert';
@@ -33,27 +33,31 @@ class SongPlayerPage extends StatefulWidget {
 }
 
 class _SongPlayerPageState extends State<SongPlayerPage> with TickerProviderStateMixin {
-  final AudioPlayer _vocalPlayer = AudioPlayer();
-  final AudioPlayer _instrumentalPlayer = AudioPlayer();
+  // SoLoud Engine Components
+  AudioSource? _instSource;
+  AudioSource? _vocalSource;
+  SoundHandle? _instHandle;
+  SoundHandle? _vocalHandle;
+
   VideoPlayerController? _videoController;
 
   bool _isPlaying = false;
   bool _isLoading = true;
-  String _loadingMessage = "Initializing...";
+  String _loadingMessage = "Initializing Engine...";
 
   // Loading sync flags
   bool _isVideoFinished = false;
   bool _isAudioReady = false;
   bool _autoPlayRequested = false;
-  bool _isVideoReadyToDisplay = false; // NEW FLAG FOR FADE-IN
+  bool _isVideoReadyToDisplay = false;
 
   Duration _duration = Duration.zero;
+  Duration _currentPosition = Duration.zero;
   Duration? _dragPosition;
 
-  StreamSubscription<Duration>? _positionSub;
-  StreamSubscription<Duration?>? _durationSub;
-  StreamSubscription<PlayerState>? _playerStateSub;
-  Timer? _syncTimer;
+  // Custom stream for the FullScreenLyricPage
+  final StreamController<Duration> _positionStreamController = StreamController<Duration>.broadcast();
+  Timer? _uiUpdateTimer;
 
   final Duration _vocalOffset = Duration.zero;
 
@@ -91,7 +95,6 @@ class _SongPlayerPageState extends State<SongPlayerPage> with TickerProviderStat
         _videoController?.setVolume(0.0); // Muted
         _videoController?.setLooping(false); // Do not loop, stop at last frame
         _videoController?.play().then((_) {
-          // Add a tiny delay to allow the white flash to happen invisibly, then fade in
           Future.delayed(const Duration(milliseconds: 150), () {
             if (mounted) {
               setState(() {
@@ -164,19 +167,29 @@ class _SongPlayerPageState extends State<SongPlayerPage> with TickerProviderStat
 
   @override
   void dispose() {
-    _positionSub?.cancel();
-    _durationSub?.cancel();
-    _playerStateSub?.cancel();
+    _positionStreamController.close();
     _videoController?.removeListener(_videoListener);
-    _vocalPlayer.dispose();
-    _instrumentalPlayer.dispose();
-    _syncTimer?.cancel();
-    _heartBeatController.dispose();
     _videoController?.dispose();
+    _heartBeatController.dispose();
 
+    _disposeCurrentAudio();
     _cleanupLocalFiles();
 
     super.dispose();
+  }
+
+  void _disposeCurrentAudio() {
+    _uiUpdateTimer?.cancel();
+    if (_instHandle != null) SoLoud.instance.stop(_instHandle!);
+    if (_vocalHandle != null) SoLoud.instance.stop(_vocalHandle!);
+    if (_instSource != null) SoLoud.instance.disposeSource(_instSource!);
+    if (_vocalSource != null) SoLoud.instance.disposeSource(_vocalSource!);
+
+    _instHandle = null;
+    _vocalHandle = null;
+    _instSource = null;
+    _vocalSource = null;
+    _currentPosition = Duration.zero;
   }
 
   Future<void> _cleanupLocalFiles() async {
@@ -359,11 +372,11 @@ class _SongPlayerPageState extends State<SongPlayerPage> with TickerProviderStat
       _lyricsLines = [];
       _currentLyricIndex = -1;
       _duration = Duration.zero;
+      _currentPosition = Duration.zero;
       _dragPosition = null;
       _isPlaying = false;
       _isFavourite = false;
 
-      // Reset loading sync states
       _isAudioReady = false;
       _isVideoFinished = false;
       _autoPlayRequested = autoPlay;
@@ -373,13 +386,9 @@ class _SongPlayerPageState extends State<SongPlayerPage> with TickerProviderStat
 
     _videoController?.seekTo(Duration.zero);
     _videoController?.play();
-    _syncTimer?.cancel();
 
-    await Future.wait([
-      _vocalPlayer.stop(),
-      _instrumentalPlayer.stop()
-    ]);
-
+    // Stop and wipe old audio completely before downloading new
+    _disposeCurrentAudio();
     await _cleanupLocalFiles();
 
     if (_currentIndex < 0 || _currentIndex >= widget.songList.length) {
@@ -412,8 +421,6 @@ class _SongPlayerPageState extends State<SongPlayerPage> with TickerProviderStat
         try {
           data = jsonDecode(res.body);
         } catch (e) {
-          debugPrint("❌ PHP ERROR DETECTED! Raw API Response:");
-          debugPrint(res.body);
           setState(() {
             _isLoading = false;
             title = "Error loading song";
@@ -476,14 +483,15 @@ class _SongPlayerPageState extends State<SongPlayerPage> with TickerProviderStat
           }).where((e) => e != null).cast<Map<String, dynamic>>().toList();
 
           _currentLyricIndex = -1;
+          _loadingMessage = "Downloading tracks for perfect sync...\n(This only happens once per song)";
         });
 
         _localVocalPath = await _downloadAndCacheFile(audioUrl, "vocal");
         _localInstPath = await _downloadAndCacheFile(instrumentalUrl, "inst");
 
         await setupAudio(
-            vocalSource: _localVocalPath ?? audioUrl,
-            instSource: _localInstPath ?? instrumentalUrl,
+            vocalSource: _localVocalPath,
+            instSource: _localInstPath,
             isLocal: (_localVocalPath != null && _localInstPath != null)
         );
 
@@ -498,52 +506,60 @@ class _SongPlayerPageState extends State<SongPlayerPage> with TickerProviderStat
     }
   }
 
-  Future<void> setupAudio({required String vocalSource, required String instSource, required bool isLocal}) async {
-    _durationSub?.cancel();
-    _positionSub?.cancel();
-    _playerStateSub?.cancel();
+  Future<void> setupAudio({required String? vocalSource, required String? instSource, required bool isLocal}) async {
     try {
-      if (isLocal) {
-        await Future.wait([
-          _vocalPlayer.setFilePath(vocalSource),
-          _instrumentalPlayer.setFilePath(instSource),
-        ]);
-      } else {
-        await Future.wait([
-          _vocalPlayer.setUrl(vocalSource),
-          _instrumentalPlayer.setUrl(instSource),
-        ]);
+      if (!isLocal || instSource == null || vocalSource == null) {
+        debugPrint("❌ SoLoud requires local cached files. Download failed.");
+        return;
       }
 
-      _durationSub = _instrumentalPlayer.durationStream.listen((d) {
-        if (d != null && d > Duration.zero) {
-          if (mounted) setState(() => _duration = d);
-        }
-      });
-      _positionSub = _instrumentalPlayer.positionStream.listen((pos) {
-        _updateLyricPosition();
-        if (_dragPosition == null) {
-          if (mounted) setState(() {});
-        }
-      });
+      // Initialize the core engine if needed
+      if (!SoLoud.instance.isInitialized) {
+        await SoLoud.instance.init();
+      }
 
-      _playerStateSub = _instrumentalPlayer.playerStateStream.listen((state) {
-        if (state.processingState == ProcessingState.completed) {
-          if (_isPlaying && mounted) {
-            _handleSongCompletion();
-          }
-        }
-      });
+      // Load files into memory
+      _instSource = await SoLoud.instance.loadFile(instSource);
+      _vocalSource = await SoLoud.instance.loadFile(vocalSource);
+
+      // Get exact duration from the engine
+      _duration = SoLoud.instance.getLength(_instSource!);
+
+      _startUiTicker();
     } catch (e) {
       debugPrint("❌ Audio setup error: $e");
     }
   }
 
-  void _updateLyricPosition({Duration? atPosition}) {
-    final currentPos = atPosition ?? _instrumentalPlayer.position;
+  void _startUiTicker() {
+    _uiUpdateTimer?.cancel();
+    _uiUpdateTimer = Timer.periodic(const Duration(milliseconds: 50), (_) {
+      if (_isPlaying && _instHandle != null) {
+
+        // Check if the track finished naturally
+        bool isValid = SoLoud.instance.getIsValidVoiceHandle(_instHandle!);
+        if (!isValid) {
+          _isPlaying = false;
+          _handleSongCompletion();
+          return;
+        }
+
+        // Continously pull position from C++ engine
+        _currentPosition = SoLoud.instance.getPosition(_instHandle!);
+        _positionStreamController.add(_currentPosition);
+        _updateLyricPosition(atPosition: _currentPosition);
+
+        if (_dragPosition == null && mounted) {
+          setState(() {});
+        }
+      }
+    });
+  }
+
+  void _updateLyricPosition({required Duration atPosition}) {
     int newIndex = -1;
     for (int i = 0; i < _lyricsLines.length; i++) {
-      if (currentPos >= _lyricsLines[i]["time"]) {
+      if (atPosition >= _lyricsLines[i]["time"]) {
         newIndex = i;
       } else {
         break;
@@ -564,7 +580,7 @@ class _SongPlayerPageState extends State<SongPlayerPage> with TickerProviderStat
       pageBuilder: (BuildContext context, _, __) => FullScreenLyricPage(
         lyricsLines: _lyricsLines,
         initialLyricIndex: _currentLyricIndex,
-        positionStream: _instrumentalPlayer.positionStream,
+        positionStream: _positionStreamController.stream, // Pass the custom stream
         title: title,
         artist: artist,
       ),
@@ -574,47 +590,28 @@ class _SongPlayerPageState extends State<SongPlayerPage> with TickerProviderStat
   }
 
   Future<void> _startPlaybackAndSync() async {
-    if (_isLoading) return;
-    _syncTimer?.cancel();
-    if (mounted) setState(() => _isPlaying = true);
+    if (_isLoading || _instSource == null || _vocalSource == null) return;
 
-    final expectedVPos = _instrumentalPlayer.position + _vocalOffset;
-    if ((_vocalPlayer.position - expectedVPos).inMilliseconds.abs() > 5) {
-      await Future.wait([
-        _instrumentalPlayer.seek(_instrumentalPlayer.position),
-        _vocalPlayer.seek(expectedVPos),
-      ]);
+    if (_instHandle == null || !SoLoud.instance.getIsValidVoiceHandle(_instHandle!)) {
+      // Create new handles (they spawn paused so we can align them)
+      _instHandle = await SoLoud.instance.play(_instSource!, paused: true);
+      _vocalHandle = await SoLoud.instance.play(_vocalSource!, paused: true);
+
+      SoLoud.instance.seek(_instHandle!, _currentPosition);
+      SoLoud.instance.seek(_vocalHandle!, _currentPosition + _vocalOffset);
     }
 
-    await Future.wait([
-      _instrumentalPlayer.play(),
-      _vocalPlayer.play(),
-    ]);
+    // Unpause simultaneously. The engine ensures 0ms desync.
+    SoLoud.instance.setPause(_instHandle!, false);
+    SoLoud.instance.setPause(_vocalHandle!, false);
 
-    _syncTimer = Timer.periodic(const Duration(milliseconds: 3000), (_) async {
-      if (!_isPlaying) return;
-      if (_vocalPlayer.processingState != ProcessingState.ready ||
-          _instrumentalPlayer.processingState != ProcessingState.ready) {
-        return;
-      }
-
-      try {
-        final currentIPos = _instrumentalPlayer.position;
-        final targetVPos = currentIPos + _vocalOffset;
-        final diff = (_vocalPlayer.position - targetVPos).inMilliseconds;
-
-        if (diff.abs() > 5) {
-          await _vocalPlayer.seek(targetVPos);
-        }
-      } catch (e) {
-        debugPrint("Sync timer error: $e");
-      }
-    });
+    if (mounted) setState(() => _isPlaying = true);
   }
 
   Future<void> _pausePlayback() async {
-    _syncTimer?.cancel();
-    await Future.wait([_vocalPlayer.pause(), _instrumentalPlayer.pause()]);
+    if (_instHandle != null) SoLoud.instance.setPause(_instHandle!, true);
+    if (_vocalHandle != null) SoLoud.instance.setPause(_vocalHandle!, true);
+
     if (mounted) setState(() => _isPlaying = false);
   }
 
@@ -627,22 +624,17 @@ class _SongPlayerPageState extends State<SongPlayerPage> with TickerProviderStat
   }
 
   Future<void> seek(Duration newPos) async {
+    _currentPosition = newPos;
     _updateLyricPosition(atPosition: newPos);
     if (mounted) setState(() {});
 
-    final bool wasPlaying = _isPlaying;
-    await _pausePlayback();
-
-    var vocalSeekPos = newPos + _vocalOffset;
-    if (vocalSeekPos < Duration.zero) vocalSeekPos = Duration.zero;
-
-    await Future.wait([
-      _instrumentalPlayer.seek(newPos),
-      _vocalPlayer.seek(vocalSeekPos),
-    ]);
-
-    if (wasPlaying) {
-      await _startPlaybackAndSync();
+    if (_instHandle != null) {
+      SoLoud.instance.seek(_instHandle!, newPos);
+    }
+    if (_vocalHandle != null) {
+      var vocalSeekPos = newPos + _vocalOffset;
+      if (vocalSeekPos < Duration.zero) vocalSeekPos = Duration.zero;
+      SoLoud.instance.seek(_vocalHandle!, vocalSeekPos);
     }
   }
 
@@ -656,6 +648,7 @@ class _SongPlayerPageState extends State<SongPlayerPage> with TickerProviderStat
     switch (_repeatMode) {
       case RepeatMode.one:
         seek(Duration.zero);
+        _startPlaybackAndSync();
         break;
       case RepeatMode.all:
       default:
@@ -847,7 +840,7 @@ class _SongPlayerPageState extends State<SongPlayerPage> with TickerProviderStat
       );
     }
 
-    final currentPosition = _dragPosition ?? _instrumentalPlayer.position;
+    final currentPosition = _dragPosition ?? _currentPosition;
     final displayDuration = formatTime(_duration);
     final displayPosition = formatTime(currentPosition);
     final sliderValue = currentPosition.inMilliseconds.toDouble().clamp(0.0, _duration.inMilliseconds.toDouble());
@@ -1105,7 +1098,7 @@ class _SongPlayerPageState extends State<SongPlayerPage> with TickerProviderStat
                           thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6.0),
                           overlayShape: const RoundSliderOverlayShape(overlayRadius: 10.0),
                           inactiveTrackColor: Colors.white24,
-                          thumbColor: Colors.white,
+                          thumbColor: Colors.pinkAccent,
                           overlayColor: Colors.blueAccent.withOpacity(0.3),
                         ),
                         child: Slider(
