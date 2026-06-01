@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'dart:convert';
+import 'dart:ui'; // Required for ImageFilter.blur in the dialog
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart'; // Required for checking login
 import 'config.dart'; // Your AppConfig
-// import 'song_detail.dart'; // No longer needed for song tile tap
-import 'player2.dart'; // <-- Correct import for your player page
+import 'login.dart'; // Required to navigate to login page
+import 'player2.dart'; // <-- Ensure this points to the file containing SongPlayerPage
 
 class ArtistDetailPage extends StatefulWidget {
   final String artistId;
@@ -25,11 +27,21 @@ class _ArtistDetailPageState extends State<ArtistDetailPage> {
   List<Map<String, dynamic>> _artistSongs = [];
   bool _isLoading = true;
   String? _error;
+  String? _currentUserId; // To track if the user is logged in
 
   @override
   void initState() {
     super.initState();
+    _checkLoginStatus();
     _fetchArtistData();
+  }
+
+  // Check if the user is logged in
+  Future<void> _checkLoginStatus() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _currentUserId = prefs.getString('user_id');
+    });
   }
 
   Future<void> _fetchArtistData() async {
@@ -75,6 +87,105 @@ class _ArtistDetailPageState extends State<ArtistDetailPage> {
     }
   }
 
+  // The Blur-Effect Login Dialog
+  void _showLoginRequiredDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(16.0),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
+              child: Container(
+                width: 300,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF000000).withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(16.0),
+                  border: Border.all(color: Colors.pinkAccent),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(24.0, 24.0, 24.0, 20.0),
+                      child: RichText(
+                        text: TextSpan(
+                          style: GoogleFonts.cabinSketch(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          children: const [
+                            TextSpan(
+                              text: 'Login',
+                              style: TextStyle(color: Colors.pinkAccent),
+                            ),
+                            TextSpan(
+                              text: ' Required',
+                              style: TextStyle(color: Colors.white),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(24.0, 0, 24.0, 20.0),
+                      child: Text(
+                        'Please log in to play songs.',
+                        style: GoogleFonts.cabinSketch(
+                          color: Colors.white70,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          TextButton(
+                            child: Text(
+                              'Cancel',
+                              style: GoogleFonts.cabinSketch(
+                                color: Colors.white70,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                            onPressed: () => Navigator.of(context).pop(),
+                          ),
+                          TextButton(
+                            child: Text(
+                              'Login',
+                              style: GoogleFonts.cabinSketch(
+                                color: Colors.pinkAccent,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                            onPressed: () {
+                              Navigator.of(context).pop();
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (context) => const LoginPage()),
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final bool canPlaySongs = !_isLoading && _artistSongs.isNotEmpty;
@@ -82,14 +193,29 @@ class _ArtistDetailPageState extends State<ArtistDetailPage> {
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
-        title: Text(
-          'Singer',
-          style: GoogleFonts.cabinSketch(color: Colors.white),
+        // Colored 'S' in Singer
+        title: RichText(
+          text: TextSpan(
+            style: GoogleFonts.cabinSketch(
+              fontSize: 24, // Matching standard AppBar title size
+              fontWeight: FontWeight.bold,
+            ),
+            children: const [
+              TextSpan(
+                text: 'S',
+                style: TextStyle(color: Colors.pinkAccent),
+              ),
+              TextSpan(
+                text: 'inger',
+                style: TextStyle(color: Colors.white),
+              ),
+            ],
+          ),
         ),
         centerTitle: true,
         backgroundColor: Colors.black,
         elevation: 0,
-        iconTheme: IconThemeData(color: Colors.white), // Back button color
+        iconTheme: const IconThemeData(color: Colors.white), // Back button color
       ),
       body: _buildBody(),
       floatingActionButton: canPlaySongs ? _buildPlayAllButton() : null,
@@ -98,7 +224,7 @@ class _ArtistDetailPageState extends State<ArtistDetailPage> {
 
   Widget _buildBody() {
     if (_isLoading) {
-      return Center(
+      return const Center(
         child: CircularProgressIndicator(color: Colors.pinkAccent),
       );
     }
@@ -131,9 +257,9 @@ class _ArtistDetailPageState extends State<ArtistDetailPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Center(child: _buildIntroductionSection()),
-          SizedBox(height: 20),
+          const SizedBox(height: 20),
           _buildSongsSection(),
-          SizedBox(height: 80), // Padding for FAB
+          const SizedBox(height: 80), // Padding for FAB
         ],
       ),
     );
@@ -181,7 +307,7 @@ class _ArtistDetailPageState extends State<ArtistDetailPage> {
                   ],
                 ),
               ),
-              SizedBox(height: 8),
+              const SizedBox(height: 8),
               Text(
                 songCountText,
                 style: GoogleFonts.cabinSketch(
@@ -190,7 +316,7 @@ class _ArtistDetailPageState extends State<ArtistDetailPage> {
                     fontWeight: FontWeight.bold // Optional: make it bold
                 ),
               ),
-              SizedBox(height: 16),
+              const SizedBox(height: 16),
               Text(
                 description,
                 style: TextStyle(
@@ -244,10 +370,10 @@ class _ArtistDetailPageState extends State<ArtistDetailPage> {
             ),
           ),
         ),
-        SizedBox(height: 5),
+        const SizedBox(height: 5),
         ListView.builder(
           shrinkWrap: true,
-          physics: NeverScrollableScrollPhysics(),
+          physics: const NeverScrollableScrollPhysics(),
           itemCount: _artistSongs.length,
           itemBuilder: (context, index) {
             final song = _artistSongs[index];
@@ -258,23 +384,19 @@ class _ArtistDetailPageState extends State<ArtistDetailPage> {
     );
   }
 
-  // --- MODIFICATIONS BELOW ---
-
   Widget _buildArtistSongTile(Map<String, dynamic> item, int index) {
     final songName = item['name']?.toString() ?? 'Unknown Song';
     final artistNames = item['artist_names']?.toString() ?? 'Unknown Artist';
 
-    // 1. Define the title style with new font size
     final titleStyle = GoogleFonts.cabinSketch(
       color: Colors.white,
       fontWeight: FontWeight.bold,
-      fontSize: 17, // <-- Adjusted font size
+      fontSize: 17,
     );
 
-    // 2. Define the artist name style with new font size
     final artistStyle = GoogleFonts.cabinSketch(
       color: Colors.pinkAccent,
-      fontSize: 14, // <-- Adjusted font size
+      fontSize: 14,
     );
 
     return Container(
@@ -294,13 +416,13 @@ class _ArtistDetailPageState extends State<ArtistDetailPage> {
             color: Colors.pinkAccent.withOpacity(0.3),
             blurRadius: 6,
             spreadRadius: 1,
-            offset: Offset(-3, -3),
+            offset: const Offset(-3, -3),
           ),
           BoxShadow(
             color: Colors.blueAccent.withOpacity(0.3),
             blurRadius: 6,
             spreadRadius: 1,
-            offset: Offset(3, 3),
+            offset: const Offset(3, 3),
           ),
         ],
       ),
@@ -309,9 +431,8 @@ class _ArtistDetailPageState extends State<ArtistDetailPage> {
         child: ClipRRect(
           borderRadius: BorderRadius.circular(7),
           child: Container(
-            color: Color(0xFF282828),
+            color: const Color(0xFF282828),
             child: ListTile(
-              // Make sure content fits vertically
               contentPadding:
               const EdgeInsets.symmetric(vertical: 4.0, horizontal: 16.0),
               leading: ClipRRect(
@@ -330,12 +451,10 @@ class _ArtistDetailPageState extends State<ArtistDetailPage> {
                   ),
                 ),
               ),
-              // 3. Use a Column in the 'title' property for manual spacing
               title: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // --- Song Name ---
                   RichText(
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -343,12 +462,12 @@ class _ArtistDetailPageState extends State<ArtistDetailPage> {
                       children: [
                         if (songName.isNotEmpty) ...[
                           TextSpan(
-                            text: songName[0], // First letter
+                            text: songName[0],
                             style: titleStyle.copyWith(color: Colors.pinkAccent),
                           ),
                           if (songName.length > 1)
                             TextSpan(
-                              text: songName.substring(1), // Rest of the name
+                              text: songName.substring(1),
                               style: titleStyle,
                             ),
                         ] else ...[
@@ -357,9 +476,7 @@ class _ArtistDetailPageState extends State<ArtistDetailPage> {
                       ],
                     ),
                   ),
-                  // 4. Manual padding between title and subtitle
-                  SizedBox(height: 4),
-                  // --- Artist Name ---
+                  const SizedBox(height: 4),
                   Text(
                     artistNames,
                     style: artistStyle,
@@ -368,18 +485,22 @@ class _ArtistDetailPageState extends State<ArtistDetailPage> {
                   ),
                 ],
               ),
-              // 5. Set subtitle to null since we handled it in the title
               subtitle: null,
               onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => SongPlayerPage(
-                      songList: _artistSongs,
-                      initialIndex: index,
+                // LOGIN CHECK APPLIED HERE
+                if (_currentUserId == null) {
+                  _showLoginRequiredDialog();
+                } else {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => SongPlayerPage(
+                        songList: _artistSongs,
+                        initialIndex: index,
+                      ),
                     ),
-                  ),
-                );
+                  );
+                }
               },
             ),
           ),
@@ -388,21 +509,23 @@ class _ArtistDetailPageState extends State<ArtistDetailPage> {
     );
   }
 
-  // --- END OF MODIFICATIONS ---
-
   Widget _buildPlayAllButton() {
     return GestureDetector(
       onTap: () {
-        // Pass the full list and index 0
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => SongPlayerPage(
-              songList: _artistSongs,
-              initialIndex: 0, // <-- Play from the beginning
+        // LOGIN CHECK APPLIED HERE
+        if (_currentUserId == null) {
+          _showLoginRequiredDialog();
+        } else {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => SongPlayerPage(
+                songList: _artistSongs,
+                initialIndex: 0,
+              ),
             ),
-          ),
-        );
+          );
+        }
       },
       child: Container(
         width: 60,
@@ -422,17 +545,17 @@ class _ArtistDetailPageState extends State<ArtistDetailPage> {
               color: Colors.pinkAccent.withOpacity(0.5),
               blurRadius: 12,
               spreadRadius: 2,
-              offset: Offset(0, 4),
+              offset: const Offset(0, 4),
             ),
             BoxShadow(
               color: Colors.blueAccent.withOpacity(0.4),
               blurRadius: 10,
               spreadRadius: 1,
-              offset: Offset(0, 2),
+              offset: const Offset(0, 2),
             ),
           ],
         ),
-        child: Icon(
+        child: const Icon(
           Icons.play_arrow_rounded,
           color: Colors.white,
           size: 35,

@@ -24,23 +24,18 @@ $result = $con->query($sql);
 if ($result) {
     $categories = [];
     
-    // Fetch all rows
     while($row = $result->fetch_assoc()) {
-        // Add each genre to our array
         $categories[] = $row;
     }
     
     $response['categories'] = $categories;
     
 } else {
-    // If the query fails
-    $response['error'] = "Query failed: " . $conn->error;
+    $response['error'] = "Query failed: " . $con->error;
 }
 
-// Close the connection
 $con->close();
 
-// Echo the final response as JSON
 echo json_encode($response);
 
 ?>

@@ -154,7 +154,6 @@ class _PlaylistPageState extends State<PlaylistPage> {
     );
   }
 
-  // --- THIS IS THE MODIFIED FUNCTION ---
   Future<void> _showCreatePlaylistDialog() async {
     _newPlaylistController.clear();
     showDialog(
@@ -167,14 +166,12 @@ class _PlaylistPageState extends State<PlaylistPage> {
             borderRadius: BorderRadius.circular(16.0),
             child: BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
-              // --- Container updated: boxShadow removed ---
               child: Container(
                 width: 300,
                 decoration: BoxDecoration(
                   color: Color(0xFF000000).withOpacity(0.3),
-                  borderRadius: BorderRadius.circular(16.0), // Main border radius
+                  borderRadius: BorderRadius.circular(16.0),
                   border: Border.all(color: Colors.pinkAccent, width: 1.5),
-                  // --- boxShadow REMOVED ---
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -188,7 +185,7 @@ class _PlaylistPageState extends State<PlaylistPage> {
                               fontSize: 22,
                               fontWeight: FontWeight.bold
                           ),
-                          children: [
+                          children: const [
                             TextSpan(text: 'New '),
                             TextSpan(
                               text: 'Playlist',
@@ -262,7 +259,7 @@ class _PlaylistPageState extends State<PlaylistPage> {
                                     if (data['status'] == 'success') {
                                       isSuccess = true;
                                       _newPlaylistController.clear();
-                                      _fetchPlaylists(); // Refresh the main list
+                                      _fetchPlaylists();
                                     }
                                   } else {
                                     message = 'Server error creating playlist.';
@@ -291,7 +288,6 @@ class _PlaylistPageState extends State<PlaylistPage> {
       },
     );
   }
-  // --- END MODIFIED FUNCTION ---
 
   @override
   Widget build(BuildContext context) {
@@ -299,12 +295,23 @@ class _PlaylistPageState extends State<PlaylistPage> {
       backgroundColor: Colors.black,
       appBar: AppBar(
         iconTheme: IconThemeData(color: Colors.white),
-        title: Text(
-          'Playlists',
-          style: GoogleFonts.cabinSketch(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-            fontSize: 20,
+        // Modified here: 'P' in Playlists is now colored pink
+        title: RichText(
+          text: TextSpan(
+            style: GoogleFonts.cabinSketch(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+            ),
+            children: const [
+              TextSpan(
+                text: 'P',
+                style: TextStyle(color: Colors.pinkAccent),
+              ),
+              TextSpan(
+                text: 'laylists',
+                style: TextStyle(color: Colors.white),
+              ),
+            ],
           ),
         ),
         centerTitle: true,
@@ -373,7 +380,7 @@ class _PlaylistPageState extends State<PlaylistPage> {
     }
 
     return GridView.builder(
-      padding: const EdgeInsets.fromLTRB(8.0, 8.0, 8.0, 80.0), // Added bottom padding for FAB
+      padding: const EdgeInsets.fromLTRB(8.0, 8.0, 8.0, 80.0),
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
         crossAxisSpacing: 16,
@@ -521,14 +528,14 @@ class _PlaylistPageState extends State<PlaylistPage> {
           child: ClipRRect(
             borderRadius: BorderRadius.circular(24),
             child: Container(
-              color: Color(0xFF282828), // Fallback color
+              color: Color(0xFF282828),
               child: Stack(
                 fit: StackFit.expand,
                 children: [
                   if (songCount >= 3)
-                    _buildGridImage(images) // Show 2x2 grid
+                    _buildGridImage(images)
                   else
-                    _buildSingleImage(images), // Show single image background
+                    _buildSingleImage(images),
 
                   // Gradient overlay
                   Container(

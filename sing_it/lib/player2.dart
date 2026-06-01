@@ -90,20 +90,23 @@ class _SongPlayerPageState extends State<SongPlayerPage> with TickerProviderStat
     super.initState();
     _currentIndex = widget.initialIndex;
 
-    _videoController = VideoPlayerController.asset('assets/logo.mp4')
-      ..initialize().then((_) {
-        _videoController?.setVolume(0.0); // Muted
-        _videoController?.setLooping(false); // Do not loop, stop at last frame
-        _videoController?.play().then((_) {
-          Future.delayed(const Duration(milliseconds: 150), () {
-            if (mounted) {
-              setState(() {
-                _isVideoReadyToDisplay = true;
-              });
-            }
+    _videoController = VideoPlayerController.asset('assets/logo.mp4');
+    _videoController!.initialize().then((_) async {
+      // CRITICAL FIX: We MUST await setVolume(0.0) before calling play()
+      // so it never leaks a blip of sound.
+      await _videoController!.setVolume(0.0);
+      await _videoController!.setLooping(false); // Do not loop, stop at last frame
+
+      await _videoController!.play();
+
+      Future.delayed(const Duration(milliseconds: 150), () {
+        if (mounted) {
+          setState(() {
+            _isVideoReadyToDisplay = true;
           });
-        });
+        }
       });
+    });
 
     _videoController?.addListener(_videoListener);
 
@@ -377,6 +380,7 @@ class _SongPlayerPageState extends State<SongPlayerPage> with TickerProviderStat
       _isPlaying = false;
       _isFavourite = false;
 
+      // Reset loading sync states
       _isAudioReady = false;
       _isVideoFinished = false;
       _autoPlayRequested = autoPlay;

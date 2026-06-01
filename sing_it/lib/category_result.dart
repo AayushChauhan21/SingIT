@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'dart:convert';
+import 'dart:ui'; // Required for ImageFilter.blur
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart'; // Required to check login
 import 'config.dart'; // Your AppConfig
+import 'login.dart'; // Required for Login routing
 import 'player2.dart'; // Import your player page
 
 class CategoryResultPage extends StatefulWidget {
@@ -24,11 +27,21 @@ class _CategoryResultPageState extends State<CategoryResultPage> {
   List<Map<String, dynamic>> _categorySongs = [];
   bool _isLoading = true;
   String? _error;
+  String? _currentUserId; // Track login status
 
   @override
   void initState() {
     super.initState();
+    _checkLoginStatus();
     _fetchCategorySongs();
+  }
+
+  // Retrieve user ID from SharedPreferences
+  Future<void> _checkLoginStatus() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _currentUserId = prefs.getString('user_id');
+    });
   }
 
   Future<void> _fetchCategorySongs() async {
@@ -76,6 +89,105 @@ class _CategoryResultPageState extends State<CategoryResultPage> {
     }
   }
 
+  // The Blur-Effect Login Dialog
+  void _showLoginRequiredDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(16.0),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
+              child: Container(
+                width: 300,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF000000).withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(16.0),
+                  border: Border.all(color: Colors.pinkAccent),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(24.0, 24.0, 24.0, 20.0),
+                      child: RichText(
+                        text: TextSpan(
+                          style: GoogleFonts.cabinSketch(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          children: const [
+                            TextSpan(
+                              text: 'Login',
+                              style: TextStyle(color: Colors.pinkAccent),
+                            ),
+                            TextSpan(
+                              text: ' Required',
+                              style: TextStyle(color: Colors.white),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(24.0, 0, 24.0, 20.0),
+                      child: Text(
+                        'Please log in to play songs.',
+                        style: GoogleFonts.cabinSketch(
+                          color: Colors.white70,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          TextButton(
+                            child: Text(
+                              'Cancel',
+                              style: GoogleFonts.cabinSketch(
+                                color: Colors.white70,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                            onPressed: () => Navigator.of(context).pop(),
+                          ),
+                          TextButton(
+                            child: Text(
+                              'Login',
+                              style: GoogleFonts.cabinSketch(
+                                color: Colors.pinkAccent,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                            onPressed: () {
+                              Navigator.of(context).pop();
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (context) => const LoginPage()),
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final bool canPlaySongs = !_isLoading && _categorySongs.isNotEmpty;
@@ -83,7 +195,7 @@ class _CategoryResultPageState extends State<CategoryResultPage> {
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
-        iconTheme: IconThemeData(color: Colors.white),
+        iconTheme: const IconThemeData(color: Colors.white),
         title: null,
         centerTitle: true,
         backgroundColor: Colors.transparent,
@@ -97,7 +209,7 @@ class _CategoryResultPageState extends State<CategoryResultPage> {
 
   Widget _buildBody(bool canPlaySongs) {
     if (_isLoading) {
-      return Center(
+      return const Center(
         child: CircularProgressIndicator(color: Colors.pinkAccent),
       );
     }
@@ -108,7 +220,6 @@ class _CategoryResultPageState extends State<CategoryResultPage> {
           padding: const EdgeInsets.all(20.0),
           child: Text(
             'Error: $_error',
-            // --- MODIFIED: Use CabinSketch ---
             style: GoogleFonts.cabinSketch(color: Colors.redAccent, fontSize: 16),
             textAlign: TextAlign.center,
           ),
@@ -125,7 +236,7 @@ class _CategoryResultPageState extends State<CategoryResultPage> {
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
             child: _buildSongsSection(),
           ),
-          SizedBox(height: 80), // Padding
+          const SizedBox(height: 80), // Padding
         ],
       ),
     );
@@ -143,7 +254,7 @@ class _CategoryResultPageState extends State<CategoryResultPage> {
 
     final String genreName = _genreInfo?['name'] ?? widget.categoryName;
     final String imageUrl = _genreInfo?['image'] ?? '';
-    final String songCount = _genreInfo?['song_count'] ?? '0';
+    final String songCount = _genreInfo?['song_count']?.toString() ?? '0';
     final String songCountText = (songCount == '1') ? '1 Song' : '$songCount Songs';
 
     final titleStyle = GoogleFonts.cabinSketch(
@@ -151,7 +262,7 @@ class _CategoryResultPageState extends State<CategoryResultPage> {
         fontSize: 32,
         fontWeight: FontWeight.bold,
         shadows: [
-          Shadow(color: Colors.black.withOpacity(0.5), blurRadius: 4, offset: Offset(0, 2)),
+          Shadow(color: Colors.black.withOpacity(0.5), blurRadius: 4, offset: const Offset(0, 2)),
         ]
     );
     final subtitleStyle = GoogleFonts.cabinSketch(
@@ -160,7 +271,7 @@ class _CategoryResultPageState extends State<CategoryResultPage> {
       fontWeight: FontWeight.bold,
     );
 
-    return Container(
+    return SizedBox(
       height: 280.0,
       child: Stack(
         fit: StackFit.expand,
@@ -185,7 +296,7 @@ class _CategoryResultPageState extends State<CategoryResultPage> {
                   Colors.black.withOpacity(0.9),
                   Colors.black.withOpacity(0.0),
                 ],
-                stops: [0.0, 0.6],
+                stops: const [0.0, 0.6],
               ),
             ),
           ),
@@ -218,7 +329,7 @@ class _CategoryResultPageState extends State<CategoryResultPage> {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
-                SizedBox(height: 5.0),
+                const SizedBox(height: 5.0),
                 Text(
                   songCountText,
                   style: subtitleStyle,
@@ -245,7 +356,6 @@ class _CategoryResultPageState extends State<CategoryResultPage> {
           padding: const EdgeInsets.symmetric(vertical: 40.0),
           child: Text(
             'No songs found for this category.',
-            // --- MODIFIED: Use CabinSketch ---
             style: GoogleFonts.cabinSketch(color: Colors.white70, fontSize: 18),
             textAlign: TextAlign.center,
           ),
@@ -256,36 +366,32 @@ class _CategoryResultPageState extends State<CategoryResultPage> {
     return ListView.separated(
       padding: EdgeInsets.zero,
       shrinkWrap: true,
-      physics: NeverScrollableScrollPhysics(),
+      physics: const NeverScrollableScrollPhysics(),
       itemCount: _categorySongs.length,
       itemBuilder: (context, index) {
         final song = _categorySongs[index];
         return _buildSongTile(song, index);
       },
       separatorBuilder: (context, index) {
-        return SizedBox(height: 8);
+        return const SizedBox(height: 8);
       },
     );
   }
-
-  // --- MODIFICATIONS BELOW ---
 
   Widget _buildSongTile(Map<String, dynamic> item, int index) {
     final String songName = item['name']?.toString() ?? 'Unknown Song';
     final String singerName = item['singer_name']?.toString() ?? 'Unknown Artist';
 
-    // 1. Define the title style with new font size
     final songNameStyle = GoogleFonts.cabinSketch(
         color: Colors.white,
-        fontSize: 17, // <-- Increased font size
+        fontSize: 17,
         fontWeight: FontWeight.bold
     );
     final firstLetterStyle = songNameStyle.copyWith(color: Colors.pinkAccent);
 
-    // 2. Define the singer name style with new font size
     final singerNameStyle = GoogleFonts.cabinSketch(
         color: Colors.pinkAccent,
-        fontSize: 14, // <-- Increased font size
+        fontSize: 14,
         fontWeight: FontWeight.bold
     );
 
@@ -306,13 +412,13 @@ class _CategoryResultPageState extends State<CategoryResultPage> {
             color: Colors.pinkAccent.withOpacity(0.3),
             blurRadius: 6,
             spreadRadius: 1,
-            offset: Offset(-3, -3),
+            offset: const Offset(-3, -3),
           ),
           BoxShadow(
             color: Colors.blueAccent.withOpacity(0.3),
             blurRadius: 6,
             spreadRadius: 1,
-            offset: Offset(3, 3),
+            offset: const Offset(3, 3),
           ),
         ],
       ),
@@ -321,9 +427,8 @@ class _CategoryResultPageState extends State<CategoryResultPage> {
         child: ClipRRect(
           borderRadius: BorderRadius.circular(7),
           child: Container(
-            color: Color(0xFF282828),
+            color: const Color(0xFF282828),
             child: ListTile(
-              // Make sure content fits vertically
               contentPadding:
               const EdgeInsets.symmetric(vertical: 4.0, horizontal: 16.0),
               leading: ClipRRect(
@@ -342,12 +447,10 @@ class _CategoryResultPageState extends State<CategoryResultPage> {
                   ),
                 ),
               ),
-              // 3. Use a Column in the 'title' property for manual spacing
               title: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // --- Song Name ---
                   RichText(
                     text: TextSpan(
                         children: [
@@ -365,9 +468,7 @@ class _CategoryResultPageState extends State<CategoryResultPage> {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  // 4. Manual padding between title and subtitle
-                  SizedBox(height: 4),
-                  // --- Artist Name ---
+                  const SizedBox(height: 4),
                   Text(
                     singerName,
                     style: singerNameStyle,
@@ -376,10 +477,13 @@ class _CategoryResultPageState extends State<CategoryResultPage> {
                   ),
                 ],
               ),
-              // 5. Set subtitle to null since we handled it in the title
               subtitle: null,
               onTap: () {
-                Navigator.push(
+                // --- LOGIN CHECK HERE ---
+                if (_currentUserId == null) {
+                  _showLoginRequiredDialog();
+                } else {
+                  Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (context) => SongPlayerPage(
@@ -387,7 +491,8 @@ class _CategoryResultPageState extends State<CategoryResultPage> {
                         initialIndex: index,
                       ),
                     ),
-                );
+                  );
+                }
               },
             ),
           ),
@@ -396,20 +501,23 @@ class _CategoryResultPageState extends State<CategoryResultPage> {
     );
   }
 
-  // --- END OF MODIFICATIONS ---
-
   Widget _buildPlayAllButton() {
     return GestureDetector(
       onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => SongPlayerPage(
-              songList: _categorySongs,
-              initialIndex: 0,
+        // --- LOGIN CHECK HERE ---
+        if (_currentUserId == null) {
+          _showLoginRequiredDialog();
+        } else {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => SongPlayerPage(
+                songList: _categorySongs,
+                initialIndex: 0,
+              ),
             ),
-          ),
-        );
+          );
+        }
       },
       child: Container(
         width: 60,
@@ -429,17 +537,17 @@ class _CategoryResultPageState extends State<CategoryResultPage> {
               color: Colors.pinkAccent.withOpacity(0.5),
               blurRadius: 12,
               spreadRadius: 2,
-              offset: Offset(0, 4),
+              offset: const Offset(0, 4),
             ),
             BoxShadow(
               color: Colors.blueAccent.withOpacity(0.4),
               blurRadius: 10,
               spreadRadius: 1,
-              offset: Offset(0, 2),
+              offset: const Offset(0, 2),
             ),
           ],
         ),
-        child: Icon(
+        child: const Icon(
           Icons.play_arrow_rounded,
           color: Colors.white,
           size: 35,

@@ -66,17 +66,27 @@ class _CategoryPageState extends State<CategoryPage> {
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
-        iconTheme: IconThemeData(color: Colors.white),
-        title: Text(
-          'Categories',
-          // --- ✅ MODIFICATION: Changed font to CabinSketch ---
-          style: GoogleFonts.cabinSketch(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-            fontSize: 20,
+        iconTheme: const IconThemeData(color: Colors.white),
+        // --- ✅ MODIFICATION: RichText for Pink 'C' ---
+        title: RichText(
+          text: TextSpan(
+            style: GoogleFonts.cabinSketch(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+            ),
+            children: const [
+              TextSpan(
+                text: 'C',
+                style: TextStyle(color: Colors.pinkAccent),
+              ),
+              TextSpan(
+                text: 'ategories',
+                style: TextStyle(color: Colors.white),
+              ),
+            ],
           ),
-          // --- END OF MODIFICATION ---
         ),
+        // --- END OF MODIFICATION ---
         centerTitle: true,
         backgroundColor: Colors.black,
         elevation: 0,
@@ -87,7 +97,7 @@ class _CategoryPageState extends State<CategoryPage> {
 
   Widget _buildBody() {
     if (_isLoading) {
-      return Center(
+      return const Center(
         child: CircularProgressIndicator(color: Colors.pinkAccent),
       );
     }
@@ -98,7 +108,7 @@ class _CategoryPageState extends State<CategoryPage> {
           padding: const EdgeInsets.all(20.0),
           child: Text(
             'Error: $_error',
-            style: TextStyle(color: Colors.redAccent),
+            style: const TextStyle(color: Colors.redAccent),
             textAlign: TextAlign.center,
           ),
         ),
@@ -106,7 +116,7 @@ class _CategoryPageState extends State<CategoryPage> {
     }
 
     if (_categories.isEmpty) {
-      return Center(
+      return const Center(
         child: Text(
           'No categories found.',
           style: TextStyle(color: Colors.white70),
@@ -116,7 +126,7 @@ class _CategoryPageState extends State<CategoryPage> {
 
     return GridView.builder(
       padding: const EdgeInsets.all(8.0),
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
         crossAxisSpacing: 16,
         mainAxisSpacing: 16,
@@ -133,7 +143,6 @@ class _CategoryPageState extends State<CategoryPage> {
   Widget _buildCategoryTile(Map<String, dynamic> category) {
     final imageUrl = category['image']?.toString() ?? '';
     final name = category['name']?.toString() ?? 'Unknown';
-    // --- ADDED: Get the category ID ---
     final categoryId = category['id']?.toString() ?? '0';
 
     final songCount = category['song_count']?.toString() ?? '0';
@@ -146,20 +155,18 @@ class _CategoryPageState extends State<CategoryPage> {
     );
 
     return GestureDetector(
-      // --- MODIFIED: Updated onTap functionality ---
       onTap: () {
         print("Tapped on category: $name (ID: $categoryId)");
         Navigator.push(
           context,
           MaterialPageRoute(
             builder: (context) => CategoryResultPage(
-              categoryId: categoryId, // Pass the ID
-              categoryName: name,      // Pass the name
+              categoryId: categoryId,
+              categoryName: name,
             ),
           ),
         );
       },
-      // --- END MODIFIED ---
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(25),
@@ -176,13 +183,13 @@ class _CategoryPageState extends State<CategoryPage> {
               color: Colors.pinkAccent.withOpacity(0.3),
               blurRadius: 6,
               spreadRadius: 1,
-              offset: Offset(-3, -3),
+              offset: const Offset(-3, -3),
             ),
             BoxShadow(
               color: Colors.blueAccent.withOpacity(0.3),
               blurRadius: 6,
               spreadRadius: 1,
-              offset: Offset(3, 3),
+              offset: const Offset(3, 3),
             ),
           ],
         ),
@@ -191,7 +198,7 @@ class _CategoryPageState extends State<CategoryPage> {
           child: ClipRRect(
             borderRadius: BorderRadius.circular(24),
             child: Container(
-              color: Color(0xFF282828),
+              color: const Color(0xFF282828),
               child: Stack(
                 fit: StackFit.expand,
                 children: [
@@ -251,11 +258,11 @@ class _CategoryPageState extends State<CategoryPage> {
                         ),
 
                         // Song Count Text
-                        SizedBox(height: 4),
+                        const SizedBox(height: 4),
                         Text(
                           songCountText,
-                          style: TextStyle(
-                              fontSize: 12,
+                          style: GoogleFonts.cabinSketch( // Made style consistent with the rest of the app
+                              fontSize: 14,
                               color: Colors.pinkAccent,
                               fontWeight: FontWeight.bold
                           ),

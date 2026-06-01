@@ -25,6 +25,7 @@ dependencies:
   image_picker: ^1.0.7
   cloudinary_public: ^0.23.1
   flutter_soloud: ^2.0.0
+  audio_service: ^0.18.11
 
   # Note: ffmpeg_kit_flutter and share_plus are missing from your list here,
   # but were needed for the download functionality discussed earlier.
