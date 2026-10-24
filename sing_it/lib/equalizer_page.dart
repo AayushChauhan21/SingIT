@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_soloud/flutter_soloud.dart';
+import 'package:just_audio/just_audio.dart' as ja;
 import 'package:http/http.dart' as http;
 import 'dart:async';
 import 'dart:convert';
@@ -31,11 +32,10 @@ class _EqualizerPageState extends State<EqualizerPage> {
   // --- SoLoud Engine Components ---
   AudioSource? _instSource;
   AudioSource? _singerSource;
-  AudioSource? _userVocalSource;
 
   SoundHandle? _instHandle;
   SoundHandle? _singerHandle;
-  SoundHandle? _userVocalHandle;
+  final ja.AudioPlayer _userVocalPlayer = ja.AudioPlayer();
 
   VideoPlayerController? _videoController;
   Timer? _uiUpdateTimer;
@@ -162,7 +162,8 @@ class _EqualizerPageState extends State<EqualizerPage> {
       // 4. Load Sources into Memory
       _instSource = await SoLoud.instance.loadFile(_localInstPath!);
       _singerSource = await SoLoud.instance.loadFile(_localSingerPath!);
-      _userVocalSource = await SoLoud.instance.loadFile(widget.vocalFilePath);
+      await _userVocalPlayer.setFilePath(widget.vocalFilePath);
+      await _userVocalPlayer.setVolume(_vocalVolume);
 
       // Get exact duration
       _duration = SoLoud.instance.getLength(_instSource!);
@@ -204,7 +205,7 @@ class _EqualizerPageState extends State<EqualizerPage> {
         bool isValid = SoLoud.instance.getIsValidVoiceHandle(_instHandle!);
         if (!isValid) {
           // Song ended
-          _pausePlayback();
+          unawaited(_pausePlayback());
           if (mounted) {
             setState(() {
               _currentPosition = Duration.zero;
@@ -226,13 +227,12 @@ class _EqualizerPageState extends State<EqualizerPage> {
 
   // --- PLAYBACK & SYNC LOGIC ---
   Future<void> _startPlaybackAndSync() async {
-    if (_instSource == null || _singerSource == null || _userVocalSource == null) return;
+    if (_instSource == null || _singerSource == null) return;
 
     // Create fresh handles if they don't exist or have finished
     if (_instHandle == null || !SoLoud.instance.getIsValidVoiceHandle(_instHandle!)) {
       _instHandle = await SoLoud.instance.play(_instSource!, paused: true, volume: _instrumentalVolume);
       _singerHandle = await SoLoud.instance.play(_singerSource!, paused: true, volume: _singerVocalVolume);
-      _userVocalHandle = await SoLoud.instance.play(_userVocalSource!, paused: true, volume: _vocalVolume);
     }
 
     // Calculate total offset
@@ -246,26 +246,26 @@ class _EqualizerPageState extends State<EqualizerPage> {
     // Seek all simultaneously
     SoLoud.instance.seek(_instHandle!, _currentPosition);
     SoLoud.instance.seek(_singerHandle!, _currentPosition);
-    SoLoud.instance.seek(_userVocalHandle!, clampedVocalPosition);
+    await _userVocalPlayer.seek(clampedVocalPosition);
 
     // Unpause all simultaneously
     SoLoud.instance.setPause(_instHandle!, false);
     SoLoud.instance.setPause(_singerHandle!, false);
-    SoLoud.instance.setPause(_userVocalHandle!, false);
+    unawaited(_userVocalPlayer.play());
 
     if (mounted) setState(() => _isPlaying = true);
   }
 
-  void _pausePlayback() {
+  Future<void> _pausePlayback() async {
     if (_instHandle != null) SoLoud.instance.setPause(_instHandle!, true);
     if (_singerHandle != null) SoLoud.instance.setPause(_singerHandle!, true);
-    if (_userVocalHandle != null) SoLoud.instance.setPause(_userVocalHandle!, true);
+    await _userVocalPlayer.pause();
     if (mounted) setState(() => _isPlaying = false);
   }
 
   Future<void> _togglePlayPause() async {
     if (_isPlaying) {
-      _pausePlayback();
+      await _pausePlayback();
     } else {
       await _startPlaybackAndSync();
     }
@@ -283,12 +283,12 @@ class _EqualizerPageState extends State<EqualizerPage> {
 
       if (_instHandle != null) SoLoud.instance.seek(_instHandle!, newPos);
       if (_singerHandle != null) SoLoud.instance.seek(_singerHandle!, newPos);
-      if (_userVocalHandle != null) SoLoud.instance.seek(_userVocalHandle!, clampedVocalPosition);
+      unawaited(_seekUserVocal(clampedVocalPosition));
     }
   }
 
   Future<void> _resetPlayback() async {
-    _pausePlayback();
+    await _pausePlayback();
     if (mounted) {
       setState(() {
         _currentPosition = Duration.zero;
@@ -297,13 +297,11 @@ class _EqualizerPageState extends State<EqualizerPage> {
     }
     if (_instHandle != null) SoLoud.instance.seek(_instHandle!, Duration.zero);
     if (_singerHandle != null) SoLoud.instance.seek(_singerHandle!, Duration.zero);
-    if (_userVocalHandle != null) {
-      final int adjustmentMilliseconds = (_latencyAdjustment * 1000).round();
-      final Duration sliderAdjustment = Duration(milliseconds: adjustmentMilliseconds);
-      final Duration totalVocalOffset = _defaultVocalOffset + sliderAdjustment;
-      final clampedVocalPosition = totalVocalOffset.isNegative ? Duration.zero : totalVocalOffset;
-      SoLoud.instance.seek(_userVocalHandle!, clampedVocalPosition);
-    }
+    final int adjustmentMilliseconds = (_latencyAdjustment * 1000).round();
+    final Duration sliderAdjustment = Duration(milliseconds: adjustmentMilliseconds);
+    final Duration totalVocalOffset = _defaultVocalOffset + sliderAdjustment;
+    final clampedVocalPosition = totalVocalOffset.isNegative ? Duration.zero : totalVocalOffset;
+    await _seekUserVocal(clampedVocalPosition);
   }
 
   // --- VOLUME CONTROLS ---
@@ -319,7 +317,15 @@ class _EqualizerPageState extends State<EqualizerPage> {
 
   void _updateUserVolume(double v) {
     setState(() => _vocalVolume = v);
-    if (_userVocalHandle != null) SoLoud.instance.setVolume(_userVocalHandle!, v);
+    unawaited(_userVocalPlayer.setVolume(v));
+  }
+
+  Future<void> _seekUserVocal(Duration position) async {
+    try {
+      await _userVocalPlayer.seek(position);
+    } catch (e) {
+      debugPrint("Error seeking vocal recording: $e");
+    }
   }
 
   @override
@@ -330,11 +336,10 @@ class _EqualizerPageState extends State<EqualizerPage> {
 
     if (_instHandle != null) SoLoud.instance.stop(_instHandle!);
     if (_singerHandle != null) SoLoud.instance.stop(_singerHandle!);
-    if (_userVocalHandle != null) SoLoud.instance.stop(_userVocalHandle!);
+    unawaited(_userVocalPlayer.dispose());
 
     if (_instSource != null) SoLoud.instance.disposeSource(_instSource!);
     if (_singerSource != null) SoLoud.instance.disposeSource(_singerSource!);
-    if (_userVocalSource != null) SoLoud.instance.disposeSource(_userVocalSource!);
 
     _cleanupLocalFiles();
     super.dispose();
@@ -655,14 +660,14 @@ class _EqualizerPageState extends State<EqualizerPage> {
                       _latencyAdjustment = newValue;
                     });
 
-                    if (_isPlaying && _userVocalHandle != null) {
+                    if (_isPlaying) {
                       final int adjustMs = (_latencyAdjustment * 1000).round();
                       final Duration sliderAdjust = Duration(milliseconds: adjustMs);
                       final Duration totalVocalOffset = _defaultVocalOffset + sliderAdjust;
                       final vocalPosition = _currentPosition + totalVocalOffset;
                       final clampedVocalPosition = vocalPosition.isNegative ? Duration.zero : vocalPosition;
 
-                      SoLoud.instance.seek(_userVocalHandle!, clampedVocalPosition);
+                      unawaited(_seekUserVocal(clampedVocalPosition));
                     }
                   },
                   min: -1.0,

@@ -7,6 +7,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:http/http.dart' as http;
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'dart:math' as math;
 import 'dart:ui';
 import 'dart:ui' as ui;
@@ -99,6 +100,8 @@ class _RecordingPageState extends State<RecordingPage> with TickerProviderStateM
 
   bool _isLoading = true;
   bool _isInitialized = false;
+  bool _isRecorderOpen = false;
+  bool _isFinishing = false;
   String? _vocalFilePath;
 
   String _instrumentalUrlForPlayback = '';
@@ -111,6 +114,7 @@ class _RecordingPageState extends State<RecordingPage> with TickerProviderStateM
 
   bool _isPlaying = false;
   bool _isRecording = false;
+  bool _isPlaybackTransitioning = false;
 
   Duration _duration = Duration.zero;
   Duration _position = Duration.zero;
@@ -171,6 +175,7 @@ class _RecordingPageState extends State<RecordingPage> with TickerProviderStateM
       _currentUserId = prefs.getString('user_id');
 
       await _audioRecorder.openRecorder();
+      _isRecorderOpen = true;
 
       final res = await http.get(Uri.parse("${AppConfig.baseUrl}getSongDetails.php?sid=${widget.sid}"));
       if (res.statusCode == 200) {
@@ -354,7 +359,10 @@ class _RecordingPageState extends State<RecordingPage> with TickerProviderStateM
   void dispose() {
     _positionSub?.cancel();
     _instrumentalPlayer.dispose();
-    _audioRecorder.closeRecorder();
+    if (_isRecorderOpen) {
+      _isRecorderOpen = false;
+      unawaited(_audioRecorder.closeRecorder());
+    }
     _scrollController.dispose();
     _heartBeatController.dispose();
     _rotationController.dispose();
@@ -394,8 +402,7 @@ class _RecordingPageState extends State<RecordingPage> with TickerProviderStateM
     if (_isRecording || !_isInitialized) return;
     try {
       final dir = await getTemporaryDirectory();
-      // AAC MP4 is standard and robust for Just_Audio on all phones
-      final path = '${dir.path}/temp_rec_${DateTime.now().millisecondsSinceEpoch}.mp4';
+      final path = '${dir.path}/temp_rec_${DateTime.now().millisecondsSinceEpoch}.m4a';
 
       if (!mounted) return;
       setState(() {
@@ -420,26 +427,33 @@ class _RecordingPageState extends State<RecordingPage> with TickerProviderStateM
   }
 
   Future<void> _onPlayPausePressed() async {
+    if (!_isRecording || _isPlaybackTransitioning) return;
+    _isPlaybackTransitioning = true;
     final bool wasPlaying = _isPlaying;
-    try {
-      if (mounted) {
-        setState(() => _isPlaying = !wasPlaying);
-      }
 
+    try {
       if (wasPlaying) {
-        _rotationController.stop();
-        await _instrumentalPlayer.pause();
         await _audioRecorder.pauseRecorder();
+        await _instrumentalPlayer.pause();
+        _rotationController.stop();
       } else {
-        _rotationController.repeat();
         await _audioRecorder.resumeRecorder();
         await Future.delayed(const Duration(milliseconds: 250));
         if (!mounted) return;
-        await _instrumentalPlayer.play();
+        unawaited(_instrumentalPlayer.play());
+        _rotationController.repeat();
+      }
+
+      if (mounted) {
+        setState(() => _isPlaying = !wasPlaying);
       }
     } catch (e) {
       debugPrint("Error in _onPlayPausePressed: $e");
-      if (mounted) setState(() => _isPlaying = wasPlaying);
+      if (mounted) {
+        _showErrorDialog("Could not ${wasPlaying ? 'pause' : 'resume'} recording: $e");
+      }
+    } finally {
+      _isPlaybackTransitioning = false;
     }
   }
 
@@ -469,15 +483,30 @@ class _RecordingPageState extends State<RecordingPage> with TickerProviderStateM
   }
 
   Future<void> _onFinishPressed() async {
-    if (!_isRecording) return;
+    // 1. Prevent multiple rapid clicks
+    if (!_isRecording || _isFinishing) return;
+
+    setState(() {
+      _isFinishing = true;
+    });
+
     String? vocalPath;
 
     try {
+      // 2. Stop UI animations and background music immediately
       _rotationController.stop();
       await _instrumentalPlayer.stop();
+
+      // 3. Stop the recorder
       if (_audioRecorder.isRecording || _audioRecorder.isPaused) {
         vocalPath = await _audioRecorder.stopRecorder();
       }
+
+      /*
+         CRITICAL FIX: Removed closeRecorder() from here.
+         Calling closeRecorder() while navigating causes the native Error -38.
+         The dispose() method already handles closing the recorder safely.
+      */
 
       if (mounted) {
         setState(() {
@@ -487,25 +516,41 @@ class _RecordingPageState extends State<RecordingPage> with TickerProviderStateM
         });
       }
 
-      await _instrumentalPlayer.seek(Duration.zero);
+      // 4. Validate the recording before navigating
+      if (vocalPath != null) {
+        final recording = File(vocalPath);
+        if (await recording.exists() && await recording.length() > 0) {
+          if (!mounted) return;
 
-      if (vocalPath != null && mounted) {
-        _vocalFilePath = vocalPath;
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (context) => EqualizerPage(
-              sid: widget.sid,
-              vocalFilePath: _vocalFilePath!,
-              title: _title,
-              artist: _artist,
+          _vocalFilePath = vocalPath;
+
+          // Navigate to the next page
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (context) => EqualizerPage(
+                sid: widget.sid,
+                vocalFilePath: _vocalFilePath!,
+                title: _title,
+                artist: _artist,
+              ),
             ),
-          ),
-        );
-      } else if (vocalPath == null) {
+          );
+        } else {
+          throw Exception("The recording file is empty or missing.");
+        }
+      } else {
         _showErrorDialog("Recording file was not created.");
       }
     } catch (e) {
       debugPrint("Error in _onFinishPressed: $e");
+      _showErrorDialog("Could not finish the recording: $e");
+    } finally {
+      // Reset finishing flag only if we didn't navigate away
+      if (mounted) {
+        setState(() {
+          _isFinishing = false;
+        });
+      }
     }
   }
 

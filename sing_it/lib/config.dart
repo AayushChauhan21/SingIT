@@ -1,14 +1,14 @@
 // lib/config.dart
 
 class AppConfig {
-  // For emulator / Chrome (localhost works only on PC, not real device)
-  static const String localhostUrl = "http://10.91.151.203/flutter_crud/";
+  // Android emulator address for reaching the host machine.
+  static const String localhostUrl = "http://10.0.2.2/flutter_crud/";
 
-  // For real device (replace with your PC LAN IP)
-  static const String lanUrl = "http://10.91.151.203/flutter_crud/";
+  // Use this address when running on a physical device on the same network.
+  static const String lanUrl = "http://10.241.54.203/flutter_crud/";
 
-  // Switch manually depending on testing
-  static const bool useLocalhost = true;
+  // Default to the current PC LAN address.
+  static const bool useLocalhost = false;
 
   // Final URL used in app
   static String get baseUrl => useLocalhost ? localhostUrl : lanUrl;
