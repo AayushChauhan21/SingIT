@@ -1,5 +1,7 @@
 <?php
 
+ini_set('max_execution_time', '600');
+
 if (session_status() == PHP_SESSION_NONE) {
     session_start();
 }
@@ -18,23 +20,25 @@ $cloudinary = new Cloudinary([
         'cloud_name' => 'do3hihcwa',
         'api_key' => '684953537186227',
         'api_secret' => 'KlMn8Q-QtRfVcVTXBomtZC2U1Og'
-    ]
+    ],
+    'api' => [
+        'connection_timeout' => 30,
+        'upload_timeout' => 300
+    ],
 ]);
 
 // 🔧 Convert HH:MM:SS to seconds
 function timeStringToSeconds($timeString)
 {
     $parts = explode(':', $timeString);
-    $parts = array_reverse($parts); // Handle MM:SS or HH:MM:SS
-
+    $parts = array_reverse($parts);
     $seconds = 0;
     if (isset($parts[0]))
-        $seconds += (int) $parts[0];      // Seconds
+        $seconds += (int) $parts[0];
     if (isset($parts[1]))
-        $seconds += (int) $parts[1] * 60;    // Minutes
+        $seconds += (int) $parts[1] * 60;
     if (isset($parts[2]))
-        $seconds += (int) $parts[2] * 3600;  // Hours
-
+        $seconds += (int) $parts[2] * 3600;
     return $seconds;
 }
 
@@ -47,27 +51,39 @@ function formatDuration($seconds)
     return sprintf('%02d:%02d:%02d', $hours, $minutes, $secs);
 }
 
+function selectedIds($field)
+{
+    $values = $_POST[$field] ?? [];
+    $values = is_array($values) ? $values : [$values];
+    $ids = [];
+
+    foreach ($values as $value) {
+        foreach (explode(',', (string) $value) as $id) {
+            $id = (int) trim($id);
+            if ($id > 0) {
+                $ids[$id] = $id;
+            }
+        }
+    }
+
+    return array_values($ids);
+}
+
 if (isset($_POST["insert"])) {
     $name = $_POST["trackName"];
     $album = $_POST["albumName"];
     $rawDuration = trim($_POST["duration"] ?? '0');
-
-    // Convert to seconds then format as HH:MM:SS
     $length = formatDuration(timeStringToSeconds($rawDuration));
-
     $lyrics = $_POST["syncedLyrics"];
     $imageUrl = $_POST["albumImageUrl"];
 
-    // Vocal Audio ID: audio_vocal
     $vocalAudioTmp = $_FILES["audio_vocal"]["tmp_name"] ?? '';
     $instTmp = $_FILES["audio_i"]["tmp_name"] ?? '';
     $manualTmp = $_FILES["manualImage"]["tmp_name"] ?? '';
-
-    // Poster Image
     $posterTmp = $_FILES["posterImage"]["tmp_name"] ?? '';
     $posterUrl = '';
 
-    // Upload Vocal Audio
+    // Upload Vocal Audio -> Song/Vocals ફોલ્ડરમાં જશે
     if (!$vocalAudioTmp) {
         $_SESSION['status'] = 'error';
         $_SESSION['message'] = 'Vocal audio file is missing.';
@@ -76,18 +92,26 @@ if (isset($_POST["insert"])) {
     }
 
     try {
-        $uploadResult = $cloudinary->uploadApi()->upload($vocalAudioTmp, ['resource_type' => 'video']);
+        // 1. Vocal Audio Upload -> Song/Vocals
+        $uploadResult = $cloudinary->uploadApi()->upload($vocalAudioTmp, [
+            'resource_type' => 'video',
+            'folder' => 'Song/Vocals'
+        ]);
         $vocalUrl = $uploadResult['secure_url'];
     } catch (Exception $e) {
         echo "<script>alert('❌ Vocal upload failed: " . $e->getMessage() . "');</script>";
         exit;
     }
 
-    // Upload Instrumental Audio (Optional)
+    // Upload Instrumental Audio (Optional) -> Song/Instrumental ફોલ્ડરમાં જશે
     $instrumentalUrl = '';
     if ($instTmp) {
         try {
-            $uploadResult = $cloudinary->uploadApi()->upload($instTmp, ['resource_type' => 'video']);
+            // 2. Instrumental Audio Upload -> Song/Instrumental
+            $uploadResult = $cloudinary->uploadApi()->upload($instTmp, [
+                'resource_type' => 'video',
+                'folder' => 'Song/Instrumental'
+            ]);
             $instrumentalUrl = $uploadResult['secure_url'];
         } catch (Exception $e) {
             echo "<script>alert('❌ Instrumental upload failed: " . $e->getMessage() . "');</script>";
@@ -95,21 +119,29 @@ if (isset($_POST["insert"])) {
         }
     }
 
-    // Upload Album Image (Manual)
-    if (!$imageUrl && $manualTmp) {
+    if ($manualTmp) {
         try {
-            $imgUpload = $cloudinary->uploadApi()->upload($manualTmp);
+            // 3. Manual Album Image Upload -> Song/Image
+            $imgUpload = $cloudinary->uploadApi()->upload($manualTmp, [
+                'folder' => 'Song/Image'
+            ]);
             $imageUrl = $imgUpload['secure_url'];
         } catch (Exception $e) {
             echo "<script>alert('❌ Album Image upload failed: " . $e->getMessage() . "');</script>";
             exit;
         }
+    } elseif (empty($imageUrl)) {
+        // Jo manual file pan nathi ane auto-fill URL pan nathi, to default image set karo
+        $imageUrl = $default_img_path;
     }
 
-    // Upload Poster Image (Required)
+    // Upload Poster Image (Required) -> Song/Poster ફોલ્ડરમાં જશે
     if ($posterTmp) {
         try {
-            $posterUpload = $cloudinary->uploadApi()->upload($posterTmp);
+            // 4. Poster Image Upload -> Song/Poster
+            $posterUpload = $cloudinary->uploadApi()->upload($posterTmp, [
+                'folder' => 'Song/Poster'
+            ]);
             $posterUrl = $posterUpload['secure_url'];
         } catch (Exception $e) {
             echo "<script>alert('❌ Poster Image upload failed: " . $e->getMessage() . "');</script>";
@@ -122,51 +154,44 @@ if (isset($_POST["insert"])) {
         exit;
     }
 
-
     // Main Song Insert Query (Prepared Statement)
-    // SQL Syntax હવે બરાબર છે
     $qry = "INSERT INTO song (name, image, length, lyrics, album, instrumental, vocal, poster) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
-
     $stmt = $con->prepare($qry);
-
-    // $posterUrl ને bind કર્યું
-    $stmt->bind_param("ssssssss", $name, $imageUrl, $length, $lyrics, $album, $instrumentalUrl, $vocalUrl, $posterUrl); // 8 's'
+    $stmt->bind_param("ssssssss", $name, $imageUrl, $length, $lyrics, $album, $instrumentalUrl, $vocalUrl, $posterUrl);
 
     if ($stmt->execute()) {
         $songId = $stmt->insert_id;
 
-        // --- MAPPING (Artist, Genre, and Language) ---
-        if (!empty($_POST['artistId'])) {
-            foreach ($_POST['artistId'] as $artistId) {
-                mysqli_query($con, "INSERT INTO artist_song (artist_id, song_id) VALUES ('$artistId', '$songId')");
+        // The form sends selected IDs as a comma-separated value in one array entry.
+        $relations = [
+            ['artist_song', 'artist_id', selectedIds('artistId')],
+            ['genre_song', 'genre_id', selectedIds('genreId')],
+            ['language_song', 'language_id', selectedIds('languageId')],
+        ];
+
+        foreach ($relations as [$table, $column, $ids]) {
+            if (!$ids) {
+                continue;
             }
+
+            $mappingStmt = $con->prepare("INSERT INTO $table ($column, song_id) VALUES (?, ?)");
+            foreach ($ids as $relationId) {
+                $mappingStmt->bind_param("ii", $relationId, $songId);
+                $mappingStmt->execute();
+            }
+            $mappingStmt->close();
         }
 
-        if (!empty($_POST['genreId'])) {
-            foreach ($_POST['genreId'] as $genreId) {
-                mysqli_query($con, "INSERT INTO genre_song (genre_id, song_id) VALUES ('$genreId', '$songId')");
-            }
-        }
-
-        if (!empty($_POST['languageId'])) {
-            foreach ($_POST['languageId'] as $languageId) {
-                mysqli_query($con, "INSERT INTO language_song (language_id, song_id) VALUES ('$languageId', '$songId')");
-            }
-        }
-
-        // --- Success Message ---
         $_SESSION['status'] = 'success';
         $_SESSION['message'] = 'Song has been successfully inserted!';
         header("location:" . $baseUrl . "view_songs.php");
-
+        exit;
 
     } else {
-        // Database Execution Failed
         $_SESSION['status'] = 'error';
-        // Database Error message બતાવવું મદદરૂપ છે.
-        $_SESSION['message'] = 'Database insert failed. Please check the database schema (e.g., if the "poster" column exists). Error: ' . $stmt->error;
-
+        $_SESSION['message'] = 'Database insert failed. Error: ' . $stmt->error;
         header("location:" . $baseUrl . "view_songs.php");
+        exit;
     }
 
     $stmt->close();

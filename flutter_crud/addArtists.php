@@ -1,5 +1,5 @@
 <?php
-// addArtists.php (સુધારેલો કોડ)
+// addArtists.php
 
 if (session_status() == PHP_SESSION_NONE) {
     session_start();
@@ -24,42 +24,45 @@ $cloudinary = new Cloudinary([
 ]);
 
 if (isset($_POST["insert"])) {
-    // 1. Get all fields (including description and both files)
+    // 1. Get all fields
     $name = trim($_POST["name"] ?? '');
     $description = trim($_POST["description"] ?? '');
-    $photoTmp = $_FILES["photo"]["tmp_name"] ?? null; // Main image
-    $imageTransparentTmp = $_FILES["image"]["tmp_name"] ?? null; // Transparent image (name="image")
+    $photoTmp = $_FILES["photo"]["tmp_name"] ?? null; // Main image with background
+    $imageTransparentTmp = $_FILES["image"]["tmp_name"] ?? null; // Transparent image without background
 
     $mainImageUrl = null;
     $transparentImageUrl = null;
 
-    // Basic required field check (Validation is mainly done on the client side, but server check is good practice)
+    // Basic required field check
     if (empty($name) || empty($description) || !$photoTmp || !$imageTransparentTmp) {
         $_SESSION['status'] = 'error';
         $_SESSION['message'] = 'All fields (Name, Description, and both Images) are required.';
-        header("location:" . $baseUrl . "add_artist.php"); // Redirect back to form
+        header("location:" . $baseUrl . "add_artist.php");
         exit;
     }
 
     try {
-        // 2. Upload Main Image (photo)
+        // 📁 2. Upload Main Image -> 'Artist/with-bg' ફોલ્ડરમાં જશે
         if ($photoTmp) {
-            $uploadResult = $cloudinary->uploadApi()->upload($photoTmp);
+            $uploadResult = $cloudinary->uploadApi()->upload($photoTmp, [
+                'folder' => 'Artist/with-bg'
+            ]);
             $mainImageUrl = mysqli_real_escape_string($con, $uploadResult['secure_url']);
         }
 
-        // 3. Upload Transparent Image (image)
+        // 📁 3. Upload Transparent Image -> 'Artist/without-bg' ફોલ્ડરમાં જશે
         if ($imageTransparentTmp) {
-            $uploadResult = $cloudinary->uploadApi()->upload($imageTransparentTmp);
+            $uploadResult = $cloudinary->uploadApi()->upload($imageTransparentTmp, [
+                'folder' => 'Artist/without-bg'
+            ]);
             $transparentImageUrl = mysqli_real_escape_string($con, $uploadResult['secure_url']);
         }
 
-        // Sanitize other inputs
+        // Sanitize inputs
         $name_safe = mysqli_real_escape_string($con, $name);
         $description_safe = mysqli_real_escape_string($con, $description);
 
-        // 4. Insert Query: Include 'description' and 'image_transparent' columns
-        // Assuming your DB columns are 'name', 'photo', 'description', and 'image_transparent'
+        // 4. Insert Query
         $qry = "INSERT INTO artist (name, description, photo, image) 
                 VALUES ('$name_safe', '$description_safe', '$mainImageUrl', '$transparentImageUrl')";
 
@@ -70,15 +73,14 @@ if (isset($_POST["insert"])) {
         } else {
             $_SESSION['status'] = 'error';
             $_SESSION['message'] = 'Database insert failed: ' . mysqli_error($con);
-            header("location:" . $baseUrl . "view_artist.php"); // Or view_artist.php
+            header("location:" . $baseUrl . "view_artist.php");
         }
 
     } catch (Exception $e) {
         $_SESSION['status'] = 'error';
         $_SESSION['message'] = 'Upload Failed: ' . $e->getMessage();
-        header("location:" . $baseUrl . "view_artist.php"); // Or view_artist.php
+        header("location:" . $baseUrl . "view_artist.php");
     }
     exit;
 }
-
 ?>

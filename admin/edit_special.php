@@ -3,11 +3,11 @@
 
 include('demo.php');
 include('hhh.php');
-include('connection.php'); 
+include('connection.php');
 error_reporting(1);
 
 $default_img_path = 'favicon_1.png';
-$current_special_sids = []; 
+$current_special_sids = [];
 
 // --- Dynamic URL Logic ---
 $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? "https://" : "http://";
@@ -38,143 +38,217 @@ $current_sid = count($current_special_sids) > 0 ? $current_special_sids[0] : nul
 $current_sid_json = json_encode($current_sid);
 ?>
 
-<link rel="stylesheet" href="https://unicons.iconscout.com/release/v4.0.0/css/line.css">
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<!DOCTYPE html>
+<html lang="en">
 
-<style>
-    .checkbox-item input[type="radio"] {
-        margin-right: 10px;
-        width: 18px;
-        height: 18px;
-        accent-color: #AA62C7;
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Special Song</title>
+    <link rel="stylesheet" href="https://unicons.iconscout.com/release/v4.0.0/css/line.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
+    /* --- PREMIUM DARK ULTRA CONTEMPORARY OTT MUSIC STREAMING UI WRAPPER --- */
+    :root {
+        --body-bg: #0b0f19;
+        --form-surface: #131a26;
+        --input-bg: #1c2536;
+        --input-border: rgba(255, 255, 255, 0.05);
+        --text-primary: #f8fafc;
+        --text-secondary: #94a3b8;
+        --accent-neon: #AA62C7;
+        --accent-neon-glow: #6259ca;
+        --danger-neon: #ef4444;
+        --radius-music: 16px;
+        --transition-music: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
-    form {
-        background-color: white;
-        border-radius: 20px;
+    .music-form-panel {
+        border: 1px solid rgba(255, 255, 255, 0.03);
+        border-radius: var(--radius-music);
+        padding: 2.5rem;
     }
 
-    h1 {
-        border-radius: 10px;
+    .music-heading {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        letter-spacing: -0.5px;
     }
 
-    .input {
-        border-radius: 10px;
-        height: 40px;
-        color: black;
+    .field-title {
+        font-size: 0.85rem;
+        font-weight: 500;
+        color: var(--text-secondary);
+        margin-bottom: 0.5rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
     }
 
-    .btn-lg {
-        padding: 0rem 3rem;
-        font-size: 0.875rem;
-        border-radius: 10px;
-    }
-
-    #gradient {
-        background: linear-gradient(135deg, #6259ca, #ff6ec4);
-    }
-
-    .error {
-        color: red;
-        font-size: 14px;
-        margin-top: 5px;
-        display: none;
-    }
-
+    /* --- CUSTOM DROPDOWN MATRIX --- */
     #custom-dropdown-header {
-        border: 1px solid rgba(0, 0, 0, 0.15);
-        padding: 10px;
-        border-radius: 8px;
+        border: 1px solid var(--input-border);
+        background-color: var(--input-bg);
+        padding: 0.85rem 1.25rem;
+        border-radius: 12px;
         cursor: pointer;
-        font-weight: bold;
+        font-weight: 500;
         display: flex;
         justify-content: space-between;
         align-items: center;
+        color: var(--text-primary);
+        transition: var(--transition-music);
+    }
+
+    #custom-dropdown-header:hover {
+        border-color: rgba(255, 255, 255, 0.15);
     }
 
     #custom-dropdown-list {
-        border: 1px solid rgba(0, 0, 0, 0.15);
+        background-color: #0e0e23;
+        border: 1px solid rgba(255, 255, 255, 0.08);
         border-top: none;
-        max-height: 200px;
+        max-height: 220px;
         overflow-y: auto;
-        border-radius: 0 0 8px 8px;
-        padding: 10px;
+        border-radius: 0 0 12px 12px;
+        padding: 0.75rem;
         display: none;
+        position: absolute;
+        width: 88.5%;
+        z-index: 10;
     }
 
     .checkbox-item {
         display: flex;
         align-items: center;
-        padding: 5px 0;
+        padding: 0.5rem;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: var(--transition-music);
+        color: var(--text-secondary);
+    }
+
+    .checkbox-item:hover {
+        background-color: rgba(255, 255, 255, 0.03);
+        color: var(--text-primary);
+    }
+
+    .checkbox-item input[type="radio"] {
+        margin-right: 12px;
+        width: 18px;
+        height: 18px;
+        accent-color: var(--accent-neon);
         cursor: pointer;
     }
 
     .checkbox-item img {
-        margin-right: 10px;
-        border-radius: 3px;
+        margin-right: 12px;
+        border-radius: 4px;
         object-fit: cover;
     }
-</style>
 
-<div class="page-header">
-    <div>
-        <h2 class="main-content-title tx-24 mg-b-5">Edit Special Song</h2>
-        <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="home.php">Home</a></li>
-            <li class="breadcrumb-item active" aria-current="page">Edit Special</li>
-        </ol>
+    .btn-music-master-deploy {
+        background: linear-gradient(135deg, #6259ca, #ff6ec4) !important;
+        color: #fff !important;
+        font-weight: 700 !important;
+        font-size: 0.95rem !important;
+        padding: 0.85rem 3.5rem !important;
+        border-radius: 10px !important;
+        border: none !important;
+        transition: var(--transition-music) !important;
+    }
+
+    .btn-music-master-deploy:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(170, 98, 199, 0.4) !important;
+    }
+
+    .error {
+        color: var(--danger-neon);
+        font-size: 0.8rem;
+        margin-top: 0.35rem;
+        display: none;
+        font-weight: 500;
+    }
+
+    .breadcrumb-item a {
+        color: var(--text-secondary) !important;
+        text-decoration: none;
+    }
+
+    .breadcrumb-item.active {
+        color: var(--accent-neon) !important;
+    }
+    </style>
+</head>
+
+<body>
+
+    <div class="page-header">
+        <div>
+            <h2 class="main-content-title tx-24 mg-b-5">Edit Special Song</h2>
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="home.php">Home</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Edit Special</li>
+            </ol>
+        </div>
     </div>
-</div>
 
-<div class="col-md-6 m-auto d-block">
-    <form action="../flutter_crud/addSpecial.php" method="post" id="form1"
-        class="mb-4 mt-5 font-weight-bold border bg-white p-5 shadow">
+    <div class="music-container px-3 col-md-6 m-auto d-block">
+        <form action="../flutter_crud/addSpecial.php" method="post" id="form1"
+            class="mb-4 border bg-white p-5 shadow music-form-panel">
 
-        <h1 class="text-center text-light font-weight-bold p-3" id="gradient">
-            <strong>Edit Special Song</strong>
-        </h1>
-        <br />
+            <div
+                class="d-flex align-items-center justify-content-between mb-4 pb-2 border-bottom border-white border-opacity-5">
+                <h1 class="music-heading mb-0">Edit Special Song</h1>
+            </div>
 
-        <h5>Select Song (Only one allowed):</h5>
+            <div class="row g-4">
+                <div class="col-12">
+                    <div class="field-title">Select Song (Only one allowed)</div>
 
-        <input type="hidden" name="sid_list" id="selected_song_sid_list" required>
+                    <input type="hidden" name="sid_list" id="selected_song_sid_list" required>
 
-        <div id="custom-dropdown-header">
-            <span id="selectionSummary">No Selected</span>
-            <i class="uil uil-angle-down"></i>
-        </div>
+                    <div id="custom-dropdown-header">
+                        <span id="selectionSummary">No Selected</span>
+                        <i class="uil uil-angle-down"></i>
+                    </div>
 
-        <div id="custom-dropdown-list">
-            <?php if (!empty($all_songs) && is_array($all_songs)): ?>
-                <?php foreach ($all_songs as $song):
-                    $poster_src = htmlspecialchars($song['image'] ?? $default_img_path);
-                    $song_id = htmlspecialchars($song['sid'] ?? '');
-                    $song_name = htmlspecialchars($song['name'] ?? 'Unknown Song');
-                    $is_checked = ($song_id == $current_sid);
-                ?>
-                    <label class="checkbox-item">
-                        <input type="radio" name="selected_song" value="<?= $song_id ?>" 
-                            data-name="<?= $song_name ?>" class="song-radio" <?= $is_checked ? 'checked' : '' ?>>
-                        <img src="<?= $poster_src ?>" height="30" width="30" alt="Poster">
-                        <span><?= $song_name ?></span>
-                    </label>
-                <?php endforeach; ?>
-            <?php else: ?>
-                <p class="text-danger">Error loading songs from API.</p>
-            <?php endif; ?>
-        </div>
+                    <div id="custom-dropdown-list">
+                        <?php if (!empty($all_songs) && is_array($all_songs)): ?>
+                        <?php foreach ($all_songs as $song):
+                                $poster_src = htmlspecialchars($song['image'] ?? $default_img_path);
+                                $song_id = htmlspecialchars($song['sid'] ?? '');
+                                $song_name = htmlspecialchars($song['name'] ?? 'Unknown Song');
+                                $is_checked = ($song_id == $current_sid);
+                                ?>
+                        <label class="checkbox-item">
+                            <input type="radio" name="selected_song" value="<?= $song_id ?>"
+                                data-name="<?= $song_name ?>" class="song-radio" <?= $is_checked ? 'checked' : '' ?>>
+                            <img src="<?= $poster_src ?>" height="30" width="30" alt="Poster">
+                            <span><?= $song_name ?></span>
+                        </label>
+                        <?php endforeach; ?>
+                        <?php else: ?>
+                        <p class="text-danger">Error loading songs from API.</p>
+                        <?php endif; ?>
+                    </div>
 
-        <span class="error" id="selectionError">⚠️ Please select exactly one song.</span>
+                    <span class="error" id="selectionError">⚠️ Please select exactly one song.</span>
+                </div>
 
-        <br />
-        <center>
-            <input type="submit" value="Update" name="update" id="update"
-                class="btn btn-outline-primary btn-lg input" />
-        </center>
-    </form>
-</div>
+                <div class="col-12 text-center mt-4 pt-2">
+                    <input type="submit" value="Update" name="update" id="update"
+                        class="btn btn-music-master-deploy shadow w-100" />
+                </div>
+            </div>
 
-<script>
+        </form>
+    </div>
+
+    <script>
     const dropdownHeader = document.getElementById('custom-dropdown-header');
     const dropdownList = document.getElementById('custom-dropdown-list');
     const selectionSummary = document.getElementById('selectionSummary');
@@ -183,7 +257,7 @@ $current_sid_json = json_encode($current_sid);
 
     let selectedSid = <?= $current_sid_json ?>;
 
-    $(document).ready(function () {
+    $(document).ready(function() {
         selectionError.style.display = 'none';
 
         const checkedRadio = document.querySelector('.song-radio:checked');
@@ -201,21 +275,26 @@ $current_sid_json = json_encode($current_sid);
         selectionError.style.display = 'none';
     });
 
-    $('#custom-dropdown-list').on('change', '.song-radio', function () {
+    $('#custom-dropdown-list').on('change', '.song-radio', function() {
         if (this.checked) {
             selectedSid = this.value;
             selectedSongSidListInput.value = selectedSid;
             selectionSummary.textContent = this.dataset.name + " Selected";
             selectionError.style.display = 'none';
+            $(dropdownList).slideUp(200);
         }
     });
 
-    document.getElementById("form1").addEventListener("submit", function (e) {
+    document.getElementById("form1").addEventListener("submit", function(e) {
         if (!selectedSongSidListInput.value) {
             selectionError.style.display = 'block';
             e.preventDefault();
         }
     });
-</script>
+    </script>
+
+</body>
+
+</html>
 
 <?php include('fff.php'); ?>

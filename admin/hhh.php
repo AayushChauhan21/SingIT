@@ -5,7 +5,7 @@ include('connection.php');
 $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? "https://" : "http://";
 $base_url = $protocol . $_SERVER['HTTP_HOST'] . "/SIngIT/flutter_crud/";
 
-$apiUrl = $base_url . "dashboard.php"; 
+$apiUrl = $base_url . "dashboard.php";
 $response = @file_get_contents($apiUrl);
 
 // Decipher the API data
@@ -63,96 +63,96 @@ $counts = $data['counts'] ?? ['songs' => 0, 'artists' => 0, 'genres' => 0, 'user
     <link href="assets/switcher/demo.css" rel="stylesheet">
 
     <style>
-        .nav-sub-link {
-            text-decoration: none;
-        }
+    .nav-sub-link {
+        text-decoration: none;
+    }
 
-        .main-sidebar-hide .side-menu .main-logo .icon-logo {
-            display: block;
-            margin-left: 17px;
-            padding-top: 10px
-        }
+    .main-sidebar-hide .side-menu .main-logo .icon-logo {
+        display: block;
+        margin-left: 17px;
+        padding-top: 10px
+    }
 
-        #search-results-wrapper {
-            position: absolute;
-            top: 100%;
-            /* Position right below the input group */
-            left: 0;
-            right: 0;
-            z-index: 1000;
-            background: rgba(12, 10, 41, 1);
-            border: 1px solid #AA62C7 !important;
-            border-top: none;
-            border-radius: 0 0 5px 5px;
-            max-height: 400px;
-            overflow-y: auto;
-            display: none;
-            /* width: 257px; */
-            /* Hidden by default */
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        }
+    #search-results-wrapper {
+        position: absolute;
+        top: 100%;
+        /* Position right below the input group */
+        left: 0;
+        right: 0;
+        z-index: 1000;
+        background: rgba(12, 10, 41, 1);
+        border: 1px solid #AA62C7 !important;
+        border-top: none;
+        border-radius: 0 0 5px 5px;
+        max-height: 400px;
+        overflow-y: auto;
+        display: none;
+        /* width: 257px; */
+        /* Hidden by default */
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
 
-        #search-results-wrapper.show {
-            display: block;
-        }
+    #search-results-wrapper.show {
+        display: block;
+    }
 
-        .search-result-item {
-            display: flex;
-            align-items: center;
-            padding: 8px 10px;
-            /* border-bottom: 1px solid #f0f0f0; */
-            transition: background-color 0.2s;
-            text-decoration: none;
-            color: #AA62C7 !important;
-        }
+    .search-result-item {
+        display: flex;
+        align-items: center;
+        padding: 8px 10px;
+        /* border-bottom: 1px solid #f0f0f0; */
+        transition: background-color 0.2s;
+        text-decoration: none;
+        color: #AA62C7 !important;
+    }
 
-        .search-result-item:hover {
-            /* background-color: #f7f7f7; */
-        }
+    .search-result-item:hover {
+        /* background-color: #f7f7f7; */
+    }
 
-        .search-result-item img {
-            width: 30px;
-            height: 30px;
-            object-fit: cover;
-            margin-right: 10px;
-            border-radius: 4px;
-        }
+    .search-result-item img {
+        width: 30px;
+        height: 30px;
+        object-fit: cover;
+        margin-right: 10px;
+        border-radius: 4px;
+    }
 
-        .main-header-left {
-            flex-shrink: 0;
-            /* Prevents shrinking */
-            flex-grow: 0;
-            /* Does not grow */
-        }
+    .main-header-left {
+        flex-shrink: 0;
+        /* Prevents shrinking */
+        flex-grow: 0;
+        /* Does not grow */
+    }
 
-        .main-header-right {
-            flex-shrink: 0;
-            /* Prevents shrinking */
-            flex-grow: 0;
-            /* Does not grow */
-        }
+    .main-header-right {
+        flex-shrink: 0;
+        /* Prevents shrinking */
+        flex-grow: 0;
+        /* Does not grow */
+    }
 
-        /* Allow the center section (containing the search bar) to fill the available space */
-        .main-header-center {
-            flex-grow: 1;
-            /* Allows growth to fill space */
-            display: flex;
-            justify-content: center;
-            /* Centers the content (search bar) horizontally */
-            max-width: 50%;
-            /* Optional: Limit search bar max width for better aesthetics */
-            /* margin: 0 20px; */
-            /* Optional: Add horizontal margin */
-        }
+    /* Allow the center section (containing the search bar) to fill the available space */
+    .main-header-center {
+        flex-grow: 1;
+        /* Allows growth to fill space */
+        display: flex;
+        justify-content: center;
+        /* Centers the content (search bar) horizontally */
+        max-width: 50%;
+        /* Optional: Limit search bar max width for better aesthetics */
+        /* margin: 0 20px; */
+        /* Optional: Add horizontal margin */
+    }
 
-        /* Remove responsive logo visibility on large screens where search bar is centered */
-        @media (min-width: 992px) {
+    /* Remove responsive logo visibility on large screens where search bar is centered */
+    @media (min-width: 992px) {
 
-            /* 992px is typically Bootstrap's large breakpoint */
-            .main-header-center .responsive-logo {
-                display: none !important;
-            }
+        /* 992px is typically Bootstrap's large breakpoint */
+        .main-header-center .responsive-logo {
+            display: none !important;
         }
+    }
     </style>
 
 </head>
@@ -344,7 +344,8 @@ $counts = $data['counts'] ?? ['songs' => 0, 'artists' => 0, 'genres' => 0, 'user
                             <img src="assets/img/brand/icon.png" class="header-brand-img icon-logo theme-logo"
                                 alt="logo"> -->
                             <img src="singit_logo_1.png" height="50" class="header-brand-img desktop-logo" alt="logo">
-                            <img src="favicon.png" class="header-brand-img icon-logo" style="width: 55px; position: relative; left: -12px; top: -13px;" alt="logo">
+                            <img src="favicon.png" class="header-brand-img icon-logo"
+                                style="width: 55px; position: relative; left: -12px; top: -13px;" alt="logo">
                             <img src="jobhub-logo.svg" class="header-brand-img desktop-logo theme-logo" alt="logo">
                             <img src="favicon.svg" class="header-brand-img icon-logo theme-logo" alt="logo">
                         </a>
@@ -369,7 +370,7 @@ $counts = $data['counts'] ?? ['songs' => 0, 'artists' => 0, 'genres' => 0, 'user
                                     <span class="shape1"></span>
                                     <span class="shape2"></span>
                                     <!-- <i class="ti-shopping-cart-full sidemenu-icon menu-icon "></i> -->
-                                    <i class="uil uil-list-ul sidemenu-icon menu-icon"></i>
+                                    <i class="uil uil-layer-group sidemenu-icon menu-icon"></i>
                                     <span class="sidemenu-label">Genres</span>
                                     <i class="angle fe fe-chevron-right"></i>
                                 </a>

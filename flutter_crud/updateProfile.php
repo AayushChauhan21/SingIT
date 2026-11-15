@@ -3,7 +3,6 @@
 
 require "connection.php";
 
-// Session start is mandatory for setting messages and redirecting
 if (session_status() == PHP_SESSION_NONE) {
     session_start();
 }
@@ -11,7 +10,6 @@ if (session_status() == PHP_SESSION_NONE) {
 require 'vendor/autoload.php';
 
 use Cloudinary\Cloudinary;
-use Cloudinary\Configuration\Configuration;
 
 // 1. Cloudinary Configuration 
 $cloudinary = new Cloudinary([
@@ -24,9 +22,29 @@ $cloudinary = new Cloudinary([
 
 $response = array("success" => false, "error" => "");
 
-// --- Configuration ---
-// Removed: $photo_upload_dir as local upload is replaced by Cloudinary
-$admin_redirect_url = null; // Will store the URL to redirect the admin back to.
+// 🔧 Utility Function: Cloudinary URL માંથી Public ID કાઢવા માટે (Delete કરવા માટે)
+function getPublicIdFromUrl($url)
+{
+    if (empty($url))
+        return null;
+
+    $path = parse_url($url, PHP_URL_PATH);
+    $uploadPos = strpos($path, '/upload/');
+    if ($uploadPos === false)
+        return null;
+
+    $relativePath = substr($path, $uploadPos + 8);
+
+    // વર્ઝન ફોલ્ડર દૂર કરો (v12345678)
+    $relativePath = preg_replace('/^v\d+\//', '', $relativePath);
+
+    // એક્સ્ટેન્શન (.jpg, .png) દૂર કરો
+    $publicId = pathinfo($relativePath, PATHINFO_DIRNAME) . '/' . pathinfo($relativePath, PATHINFO_FILENAME);
+
+    return ltrim($publicId, './');
+}
+
+$admin_redirect_url = null;
 
 // 2. Check if minimum required POST data was sent
 if (isset($_POST['id']) && isset($_POST['name']) && isset($_POST['email']) && isset($_POST['role'])) {
@@ -37,23 +55,24 @@ if (isset($_POST['id']) && isset($_POST['name']) && isset($_POST['email']) && is
     $email = $_POST['email'];
     $role = strtolower($_POST['role']); // 'user' or 'admin'
 
-    // Get redirect URL for Admin panel
     if ($role === 'admin' && isset($_POST['redirect_url'])) {
         $admin_redirect_url = $_POST['redirect_url'];
     }
 
-    // Sanitize common fields
     $id_safe = mysqli_real_escape_string($con, $id);
     $name_safe = mysqli_real_escape_string($con, $name);
     $email_safe = mysqli_real_escape_string($con, $email);
 
-    // Determine the target table and ID column name
+    // Determine target table and ID column name
     if ($role === 'user') {
         $table = 'user';
         $id_column = 'id';
+        $folderPath = 'User/Profile-Pic'; // 📁 User માટેનું ફોલ્ડર
     } elseif ($role === 'admin') {
         $table = 'admin';
         $id_column = 'id';
+        // $folderPath = 'Admin/Profile-Pic'; // 📁 Admin માટેનું ફોલ્ડર (અથવા User/Profile-Pic પણ રાખી શકો)
+        $folderPath = 'User/Profile-Pic';
     } else {
         $response["error"] = "Invalid role specified.";
         goto finish;
@@ -66,7 +85,6 @@ if (isset($_POST['id']) && isset($_POST['name']) && isset($_POST['email']) && is
     if (isset($_POST['password']) && !empty(trim($_POST['password']))) {
         $newPassword = trim($_POST['password']);
 
-        // Admin length check (for security consistency)
         if ($role === 'admin' && strlen($newPassword) !== 6) {
             $response["error"] = "Admin password must be 6 characters long.";
             goto finish;
@@ -76,30 +94,46 @@ if (isset($_POST['id']) && isset($_POST['name']) && isset($_POST['email']) && is
         $set_clause .= ", password = '$password_safe'";
     }
 
-    // --- Conditional Photo Update (Only for Admin) ---
+    // --- Conditional Photo Update (User અને Admin બંને માટે) ---
     $photo_success = true;
-    if ($role === 'admin' && isset($_FILES['photo']) && !empty($_FILES['photo']['name'])) {
+    if (isset($_FILES['photo']) && !empty($_FILES['photo']['name'])) {
         $photo_file = $_FILES['photo'];
         $photo_tmp = $photo_file['tmp_name'];
 
-        // 🚀 Attempt Cloudinary upload instead of local move
         try {
+            // 🗑️ ૧. પહેલા ડેટાબેઝમાંથી જૂનો પ્રોફાઈલ ફોટો શોધીને Cloudinary માંથી ડિલીટ કરો
+            $oldDataQuery = mysqli_query($con, "SELECT photo FROM $table WHERE $id_column = '$id_safe'");
+            if ($oldDataQuery && mysqli_num_rows($oldDataQuery) > 0) {
+                $oldRow = mysqli_fetch_assoc($oldDataQuery);
+                $oldPhotoUrl = $oldRow['photo'] ?? null;
+
+                if (!empty($oldPhotoUrl)) {
+                    $oldPublicId = getPublicIdFromUrl($oldPhotoUrl);
+                    if ($oldPublicId) {
+                        try {
+                            $cloudinary->uploadApi()->destroy($oldPublicId, ['resource_type' => 'image']);
+                        } catch (Exception $e) {
+                            // જૂનો ફોટો ડીલીટ થવામાં એરર આવે તો ઈગ્નોર કરો
+                        }
+                    }
+                }
+            }
+
+            // 📁 ૨. નવો પ્રોફાઈલ ફોટો 'User/Profile-Pic' (અથવા Admin) ફોલ્ડરમાં અપલોડ કરો
             $uploadResult = $cloudinary->uploadApi()->upload($photo_tmp, [
-                // Optional: set a specific folder for admin profiles
-                'folder' => 'admin_profiles'
+                'folder' => $folderPath
             ]);
-            $photoUrl = $uploadResult['secure_url']; // Get the URL
+            $photoUrl = $uploadResult['secure_url'];
 
             $photoUrl_safe = mysqli_real_escape_string($con, $photoUrl);
 
-            // Update the SET clause to use the Cloudinary URL
+            // Update the SET clause
             $set_clause .= ", photo = '$photoUrl_safe'";
 
         } catch (Exception $e) {
             $response["error"] = "Failed to upload photo to Cloudinary: " . $e->getMessage();
             $photo_success = false;
 
-            // Handle Admin redirect on upload failure
             if ($admin_redirect_url) {
                 $_SESSION['status'] = 'error';
                 $_SESSION['message'] = '❌ Image upload failed: ' . $e->getMessage();
@@ -111,18 +145,16 @@ if (isset($_POST['id']) && isset($_POST['name']) && isset($_POST['email']) && is
     }
 
     if (!$photo_success) {
-        goto finish; // Stop if photo upload failed (only relevant if it wasn't already redirected)
+        goto finish;
     }
 
     // 4. Final SQL query
-    $sql = "UPDATE $table SET $set_clause WHERE $id_column = $id_safe";
+    $sql = "UPDATE $table SET $set_clause WHERE $id_column = '$id_safe'";
 
-    // 5. Run the query and check if it worked
+    // 5. Run the query
     if ($con->query($sql) === TRUE) {
-        // Success!
         $response["success"] = true;
 
-        // --- ADMIN REDIRECT LOGIC (Success) ---
         if ($role === 'admin' && $admin_redirect_url) {
             $_SESSION['status'] = 'success';
             $_SESSION['message'] = 'Profile successfully updated!';
@@ -132,7 +164,6 @@ if (isset($_POST['id']) && isset($_POST['name']) && isset($_POST['email']) && is
         }
 
     } else {
-        // Query failed
         if ($con->errno == 1062) {
             $error_msg = "This email address is already in use.";
         } else {
@@ -141,7 +172,6 @@ if (isset($_POST['id']) && isset($_POST['name']) && isset($_POST['email']) && is
 
         $response["error"] = $error_msg;
 
-        // --- ADMIN REDIRECT LOGIC (Failure) ---
         if ($role === 'admin' && $admin_redirect_url) {
             $_SESSION['status'] = 'error';
             $_SESSION['message'] = $error_msg;
@@ -152,12 +182,10 @@ if (isset($_POST['id']) && isset($_POST['name']) && isset($_POST['email']) && is
     }
 
 } else {
-    // Missing required fields
     $response["error"] = "Required fields (id, name, email, role) are missing.";
 }
 
 finish:
-// 6. Close the connection and send the JSON response (only if not redirected)
 $con->close();
 echo json_encode($response);
 ?>

@@ -43,7 +43,7 @@ while ($song_row = $song_result->fetch_assoc()) {
 
     // Check if this song's genre_id exists in our genre map
     if (isset($genres_map[$genre_id])) {
-        
+
         // Create a clean song array (without the extra genre_id field)
         $song_data = [
             'sid' => $song_row['sid'],

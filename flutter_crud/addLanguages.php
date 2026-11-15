@@ -27,42 +27,35 @@ if (isset($_POST["insert"])) {
     $photoTmp = $_FILES["photo"]["tmp_name"];
 
     try {
-        $uploadResult = $cloudinary->uploadApi()->upload($photoTmp);
+        // 📁 Cloudinary માં 'Language' ફોલ્ડરમાં ફોટો અપલોડ થશે
+        $uploadResult = $cloudinary->uploadApi()->upload($photoTmp, [
+            'folder' => 'Language'
+        ]);
+
         $imageUrl = $uploadResult['secure_url'];
+
+        // SQL Injection થી બચવા માટે escape કર્યું
+        $name = mysqli_real_escape_string($con, $name);
+        $imageUrl = mysqli_real_escape_string($con, $imageUrl);
 
         $qry = "INSERT INTO language (name,image) VALUES ('$name','$imageUrl')";
         if (mysqli_query($con, $qry)) {
             $_SESSION['status'] = 'success';
-
             $_SESSION['message'] = 'Language has been successfully inserted!';
             header("location:" . $baseUrl . "view_language.php");
-
-            // echo "<script>alert('Genre Inserted Successfully'); window.location.href='" . $baseUrl . "view_language.php';</script>";
+            exit;
         } else {
-
             $_SESSION['status'] = 'error';
             $_SESSION['message'] = 'Database insert failed. Please try again.';
-
             header("location:" . $baseUrl . "view_language.php");
-
-            // echo "<script>alert('Oops... Something went wrong!'); window.history.back();</script>";
+            exit;
         }
 
     } catch (Exception $e) {
-        // echo "<script>alert('Upload Failed: " . $e->getMessage() . "'); window.history.back();</script>";
         $_SESSION['status'] = 'error';
         $_SESSION['message'] = $e->getMessage();
-
         header("location:" . $baseUrl . "view_language.php");
-
+        exit;
     }
-
 }
-
-// if (isset($_POST["view"])) {
-//     echo "<script>window.location.href='" . $baseUrl . "view_language.php';</script>";
-//     exit;
-// }
-
-
 ?>

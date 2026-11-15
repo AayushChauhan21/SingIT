@@ -45,10 +45,20 @@ if (isset($_POST["login"])) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title> SingIT - Admin </title>
     <link rel="shortcut icon" type="image/x-icon" href="favicon.png" />
+
+    <!-- font awsome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
         integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA=="
         crossorigin="anonymous" referrerpolicy="no-referrer" />
 
+    <!-- iconscout -->
+    <link rel="stylesheet" href="https://unicons.iconscout.com/release/v4.0.0/css/line.css">
+
+    <!-- google -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
+    <!-- Remix Icon CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
     <style>
         * {
             box-sizing: border-box;
@@ -62,8 +72,13 @@ if (isset($_POST["login"])) {
         }
 
         body {
-            background: #7159BD;
+            /* background: #7159BD;
+            font-family: Roboto, Arial, sans-serif; */
+            background: linear-gradient(135deg, #9f98ec, #f294cc);
             font-family: Roboto, Arial, sans-serif;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
         }
 
         section {
@@ -115,9 +130,12 @@ if (isset($_POST["login"])) {
         }
 
         form {
-            background: url(https://i.imgur.com/789bjsg.png);
+            /* ઈમેજની સાથે સફેદ કે અન્ય કલર આપો જેથી ઈમેજ લોડ ન થાય ત્યાં સુધી તે દેખાય */
+            background: #ffffff url(https://i.imgur.com/789bjsg.png);
             background-repeat: no-repeat;
             background-size: cover;
+            background-position: center;
+            /* ઈમેજ વચ્ચે રહે તે માટે */
         }
 
         form .input-block {
@@ -134,14 +152,14 @@ if (isset($_POST["login"])) {
             height: 40px;
             display: block;
             margin-top: 8px;
-            padding: 20px;
+            /* padding: 20px; */
             font-size: 14px;
             color: #685efd;
             border-radius: 25px;
             border: 1px solid #dddddd;
             outline: #685efd;
             transition: 250ms;
-            padding-right: 50px;
+            /* padding-right: 50px; */
         }
 
         form .input-block input:hover {
@@ -174,19 +192,30 @@ if (isset($_POST["login"])) {
             font-size: 16px;
             font-weight: 500;
             border: none;
-            background-color: #685efd;
+
+            background: linear-gradient(135deg, #6259ca, #ff6ec4);
+            background-size: 200% 100%;
             color: white;
             border-radius: 35px;
             margin: auto;
             width: 200px;
             height: 50px;
             margin-top: 25px;
-            box-shadow: 3px 6px 15px -6px #685efd;
-            transition: 250ms;
+
+            box-shadow: 0 4px 15px rgba(255, 110, 196, 0.4);
+            transition: all 0.4s ease;
         }
 
         form .btn-login:hover {
-            filter: brightness(90%);
+            background-position: 100% 0;
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(255, 110, 196, 0.6);
+            cursor: pointer;
+            filter: brightness(110%);
+        }
+
+        form .btn-login:active {
+            transform: translateY(1px);
         }
 
         form p .span {
@@ -305,6 +334,18 @@ if (isset($_POST["login"])) {
             animation: up 2s infinite, alternate;
         }
 
+        /* જૂનું .squares li કાઢી નાખો અને આ નવું ઉમેરો */
+        .squares .moving-icon {
+            position: absolute;
+            bottom: -60px;
+            color: rgba(255, 255, 255, 0.4);
+            /* આઈકોનનો આછો કલર */
+            display: block;
+            animation: up 2s infinite, alternate;
+            pointer-events: none;
+            /* જેથી ક્લિક ન થાય */
+        }
+
         @keyframes up {
             from {
                 opacity: 0;
@@ -384,32 +425,58 @@ if (isset($_POST["login"])) {
         });
 
         // Background squares
-        const ulSquares = document.querySelector("ul.squares")
+        const ulSquares = document.querySelector("ul.squares");
 
-        for (let i = 0; i < 11; i++) {
-            const li = document.createElement("li");
+        // 1. આઈકોનનું લિસ્ટ બનાવો
+        const iconsList = [{
+            type: 'class',
+            name: 'uil uil-music'
+        },
+        {
+            type: 'class',
+            name: 'uil uil-music-note'
+        },
+        {
+            type: 'class',
+            name: 'fa-brands fa-itunes-note'
+        },
+        {
+            type: 'class',
+            name: 'fa-solid fa-music'
+        },
+        {
+            type: 'text',
+            name: 'music_note'
+        }, // Google
+            // {
+            //     type: 'text',
+            //     name: 'music_note_2'
+            // }, // Google
+        ];
 
-            const random = (min, max) => Math.random() * (max - min) + min
+        for (let i = 0; i < 30; i++) {
+            const icon = document.createElement("i");
+            const randomIcon = iconsList[Math.floor(Math.random() * iconsList.length)];
 
-            const size = Math.floor(random(10, 120));
+            if (randomIcon.type === 'class') {
+                icon.className = `${randomIcon.name} moving-icon`;
+            } else {
+                icon.className = 'material-icons moving-icon';
+                icon.innerText = randomIcon.name; // Google icon માટે આ જરૂરી છે
+            }
+
+            const random = (min, max) => Math.random() * (max - min) + min;
+            const size = Math.floor(random(20, 60));
             const position = random(1, 99);
-            const delay = random(5, 0.1);
+            const delay = random(15, 0.1);;
             const duration = random(24, 12);
 
-            li.style.width = `${size}px`
-            li.style.height = `${size}px`
-            li.style.bottom = `-${size}px`
+            icon.style.fontSize = `${size}px`;
+            icon.style.left = `${position}%`;
+            icon.style.animationDelay = `${delay}s`;
+            icon.style.animationDuration = `${duration}s`;
 
-            li.style.left = `${position}%`;
-
-            li.style.animationDelay = `${delay}s`
-            li.style.animationDuration = `${duration}s`
-
-            li.style.animationTimingFunction =
-                `cubic-bezier(${Math.random()}, ${Math.random()}, ${Math.random()}, ${Math.random()})`
-
-            ulSquares.appendChild(li);
-
+            ulSquares.appendChild(icon);
         }
     </script>
 

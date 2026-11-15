@@ -8,87 +8,97 @@ include('connection.php');
 <link rel="stylesheet" href="https://unicons.iconscout.com/release/v4.0.0/css/line.css">
 
 <style>
-    .main-sidebar-hide .side-menu .main-logo .icon-logo {
-        display: block;
-        margin-left: 17px;
-        padding-top: 10px
-    }
+.main-sidebar-hide .side-menu .main-logo .icon-logo {
+    display: block;
+    margin-left: 17px;
+    padding-top: 10px
+}
 
-    .btn-md {
-        /* padding: 0rem 3rem; */
-        font-size: 1.1rem;
-        /* border-radius: 10px; */
-    }
+.btn-md {
+    /* padding: 0rem 3rem; */
+    font-size: 1.1rem;
+    /* border-radius: 10px; */
+}
 
 
-    /* Ensure the image covers the container and has smooth edges */
-    .carousel-item img {
-        /* height: 250px; */
-        object-fit: cover;
-        border-radius: 0.75rem;
-        /* rounded-xl */
-    }
+/* Ensure the image covers the container and has smooth edges */
+.carousel-item img {
+    /* height: 250px; */
+    object-fit: cover;
+    border-radius: 0.75rem;
+    /* rounded-xl */
+}
 
-    /* Customizing the image size inside the carousel for consistency */
-    .carousel-inner .carousel-item img {
-        /* Set a fixed height for all carousel slides */
-        height: 302px;
-        /* તમે આ વેલ્યુ બદલી શકો છો (e.g., 300px) */
-        /* Ensure the image covers the entire container, cropping the edges if necessary, but maintaining aspect ratio. */
-        object-fit: cover;
-        /* Optional: Ensure image is block level and takes full container width */
-        display: block;
-        width: 100%;
-    }
+/* Customizing the image size inside the carousel for consistency */
+.carousel-inner .carousel-item img {
+    /* Set a fixed height for all carousel slides */
+    height: 302px;
+    /* તમે આ વેલ્યુ બદલી શકો છો (e.g., 300px) */
+    /* Ensure the image covers the entire container, cropping the edges if necessary, but maintaining aspect ratio. */
+    object-fit: cover;
+    /* Optional: Ensure image is block level and takes full container width */
+    display: block;
+    width: 100%;
+}
 
-    /* Gradient Caption for better readability */
-    .carousel-caption {
-        background: linear-gradient(to top, rgba(0, 0, 0, 0.85), rgba(0, 0, 0, 0.1));
-        bottom: 0;
-        left: 0;
-        right: 0;
-        padding: 1rem 1.5rem;
-        text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.8);
-        /* Match the inner border radius */
-        border-bottom-left-radius: 0.75rem;
-        border-bottom-right-radius: 0.75rem;
-    }
+/* Gradient Caption for better readability */
+.carousel-caption {
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.85), rgba(0, 0, 0, 0.1));
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 1rem 1.5rem;
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.8);
+    /* Match the inner border radius */
+    border-bottom-left-radius: 0.75rem;
+    border-bottom-right-radius: 0.75rem;
+}
 
-    /* Customizing the Bootstrap indicator color for contrast */
-    .carousel-indicators [data-bs-target] {
-        background-color: white;
-        opacity: 0.7;
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        border: none;
-        margin: 0 4px;
-    }
+/* Customizing the Bootstrap indicator color for contrast */
+.carousel-indicators [data-bs-target] {
+    background-color: white;
+    opacity: 0.7;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    border: none;
+    margin: 0 4px;
+}
 
-    .carousel-indicators .active {
-        background-color: #3b82f6;
-        /* Tailwind blue-500 */
-        opacity: 1;
-    }
+.carousel-indicators .active {
+    background-color: #3b82f6;
+    /* Tailwind blue-500 */
+    opacity: 1;
+}
 
-    /* --- ARROW CENTERING FIX --- */
-    .carousel-control-prev,
-    .carousel-control-next {
-        /* Force the control button to occupy the full height of the carousel */
-        height: 100%;
-        display: flex;
-        /* Use flexbox to center content */
-        align-items: center;
-        /* Vertically center the content */
-        opacity: 0.8;
-        /* Make them slightly more visible */
-        transition: opacity 0.2s;
-    }
+/* --- ARROW CENTERING FIX --- */
+.carousel-control-prev,
+.carousel-control-next {
+    /* Force the control button to occupy the full height of the carousel */
+    height: 100%;
+    display: flex;
+    /* Use flexbox to center content */
+    align-items: center;
+    /* Vertically center the content */
+    opacity: 0.8;
+    /* Make them slightly more visible */
+    transition: opacity 0.2s;
+}
 
-    .carousel-control-prev:hover,
-    .carousel-control-next:hover {
-        opacity: 1;
-    }
+.carousel-control-prev:hover,
+.carousel-control-next:hover {
+    opacity: 1;
+}
+
+/* Today's Special ની ઈમેજને સ્લાઇડર જેટલી જ સાઇઝ આપવા માટે */
+#special-gallery img,
+.carousel-inner .carousel-item img {
+    height: 400px !important;
+    object-fit: cover !important;
+    display: block;
+    width: 100%;
+    border-radius: 0.75rem;
+}
 </style>
 
 
@@ -165,7 +175,7 @@ include('connection.php');
                         <div class="card-item">
                             <h4 class="card-item-icon card-icon">
 
-                                <i class="uil uil-list-ul text-primary"></i>
+                                <i class="uil uil-layer-group text-primary"></i>
                             </h4>
                             <div class="card-item-title mb-2">
                                 <label class="main-content-label tx-13 font-weight-bold mb-1">Total
@@ -748,24 +758,24 @@ include('connection.php');
 
                 <ul id="special-gallery" class="list-unstyled row mb-0">
                     <?php if (!empty($recent_special)): ?>
-                        <?php
+                    <?php
                         // Use a column class that allows images to sit next to each other, e.g., col-4 for 3 images per row
                         $display_count = min(count($recent_special), 6);
                         ?>
-                        <?php for ($i = 0; $i < $display_count; $i++):
+                    <?php for ($i = 0; $i < $display_count; $i++):
                             $row = $recent_special[$i];
                             ?>
-                            <li class="col-12">
-                                <a href="view_song_details.php?sid=<?= urlencode($row['sid'] ?? '') ?>" class="wd-100p"
-                                    title="<?= htmlspecialchars($row['song_name'] ?? 'Song') ?>">
-                                    <img class="img-responsive img-in-grid"
-                                        src="<?= htmlspecialchars($row['song_poster'] ?? 'assets/img/default.png') ?>"
-                                        alt="<?= htmlspecialchars($row['song_name'] ?? 'Song') ?>">
-                                </a>
-                            </li>
-                        <?php endfor; ?>
+                    <li class="col-12">
+                        <a href="view_song_details.php?sid=<?= urlencode($row['sid'] ?? '') ?>" class="wd-100p"
+                            title="<?= htmlspecialchars($row['song_name'] ?? 'Song') ?>">
+                            <img class="img-responsive img-in-grid"
+                                src="<?= htmlspecialchars($row['song_poster'] ?? 'assets/img/default.png') ?>"
+                                alt="<?= htmlspecialchars($row['song_name'] ?? 'Song') ?>">
+                        </a>
+                    </li>
+                    <?php endfor; ?>
                     <?php else: ?>
-                        <li class="col-12 text-center text-muted tx-12 py-3">No special song set.</li>
+                    <li class="col-12 text-center text-muted tx-12 py-3">No special song set.</li>
                     <?php endif; ?>
                 </ul>
 
@@ -793,60 +803,60 @@ include('connection.php');
                 </div>
 
                 <?php if (!empty($recent_sliders)): ?>
-                    <div class="">
-                        <div id="mainSliderCarousel" class="carousel slide carousel-fade" data-bs-ride="carousel"
-                            data-bs-interval="3000">
+                <div class="">
+                    <div id="mainSliderCarousel" class="carousel slide carousel-fade" data-bs-ride="carousel"
+                        data-bs-interval="3000">
 
-                            <div class="carousel-indicators">
-                                <?php foreach ($recent_sliders as $index => $row): ?>
-                                    <button type="button" data-bs-target="#mainSliderCarousel" data-bs-slide-to="<?= $index ?>"
-                                        class="<?= $index === 0 ? 'active' : '' ?>"
-                                        aria-current="<?= $index === 0 ? 'true' : 'false' ?>"
-                                        aria-label="Slide <?= $index + 1 ?>"></button>
-                                <?php endforeach; ?>
-                            </div>
+                        <div class="carousel-indicators">
+                            <?php foreach ($recent_sliders as $index => $row): ?>
+                            <button type="button" data-bs-target="#mainSliderCarousel" data-bs-slide-to="<?= $index ?>"
+                                class="<?= $index === 0 ? 'active' : '' ?>"
+                                aria-current="<?= $index === 0 ? 'true' : 'false' ?>"
+                                aria-label="Slide <?= $index + 1 ?>"></button>
+                            <?php endforeach; ?>
+                        </div>
 
-                            <div class="carousel-inner rounded-xl">
-                                <?php foreach ($recent_sliders as $index => $row):
+                        <div class="carousel-inner rounded-xl">
+                            <?php foreach ($recent_sliders as $index => $row):
 
                                     $img_src_1 = htmlspecialchars(empty($row['song_poster']) ? 'perfect1.png' : $row['song_poster']);
 
                                     $song_name = htmlspecialchars($row['song_name'] ?? 'Untitled Song');
                                     ?>
-                                    <div class="carousel-item <?= $index === 0 ? 'active' : '' ?>">
-                                        <a href="view_song_details.php?sid=<?= urlencode($row['sid']) ?>"
-                                            title="<?= $song_name ?>">
-                                            <img src="<?= $img_src_1 ?>" class="d-block w-100" alt="<?= $song_name ?>">
-                                        </a>
+                            <div class="carousel-item <?= $index === 0 ? 'active' : '' ?>">
+                                <a href="view_song_details.php?sid=<?= urlencode($row['sid']) ?>"
+                                    title="<?= $song_name ?>">
+                                    <img src="<?= $img_src_1 ?>" class="d-block w-100" alt="<?= $song_name ?>">
+                                </a>
 
-                                        <div class="carousel-caption d-none d-md-block text-start">
-                                            <h5 class="mb-0 text-xl font-bold text-white"><?= $song_name ?></h5>
-                                            <p class="text-sm text-gray-300 mb-0">
-                                                <?= htmlspecialchars($row['artist_names'] ?? 'Artist(s)') ?>
-                                            </p>
-                                        </div>
-                                    </div>
-                                <?php endforeach; ?>
+                                <div class="carousel-caption d-none d-md-block text-start">
+                                    <h5 class="mb-0 text-xl font-bold text-white"><?= $song_name ?></h5>
+                                    <p class="text-sm text-gray-300 mb-0">
+                                        <?= htmlspecialchars($row['artist_names'] ?? 'Artist(s)') ?>
+                                    </p>
+                                </div>
                             </div>
-
-                            <button class="carousel-control-prev" type="button" data-bs-target="#mainSliderCarousel"
-                                data-bs-slide="prev">
-                                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                                <span class="visually-hidden">Previous</span>
-                            </button>
-                            <button class="carousel-control-next" type="button" data-bs-target="#mainSliderCarousel"
-                                data-bs-slide="next">
-                                <span class="carousel-control-next-icon" aria-hidden="true"></span>
-                                <span class="visually-hidden">Next</span>
-                            </button>
-
+                            <?php endforeach; ?>
                         </div>
+
+                        <button class="carousel-control-prev" type="button" data-bs-target="#mainSliderCarousel"
+                            data-bs-slide="prev">
+                            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                            <span class="visually-hidden">Previous</span>
+                        </button>
+                        <button class="carousel-control-next" type="button" data-bs-target="#mainSliderCarousel"
+                            data-bs-slide="next">
+                            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                            <span class="visually-hidden">Next</span>
+                        </button>
+
                     </div>
+                </div>
                 <?php else: ?>
-                    <div class="mt-3 bg-gray-50 rounded-lg border border-dashed border-gray-300">
-                        <p class="text-center text-gray-500 text-sm py-8">No slider images set. Add images via the Edit link
-                            above.</p>
-                    </div>
+                <div class="mt-3 bg-gray-50 rounded-lg border border-dashed border-gray-300">
+                    <p class="text-center text-gray-500 text-sm py-8">No slider images set. Add images via the Edit link
+                        above.</p>
+                </div>
                 <?php endif; ?>
             </div>
         </div>
@@ -888,31 +898,31 @@ include('connection.php');
                                 // 🚀 Genres Image માટે ફૉલબૅક લોજિક
                                 $genre_image_src = !empty($row['image']) ? htmlspecialchars($row['image']) : 'assets/img/favicon_1.png';
                                 ?>
-                                <tr>
-                                    <td class="font-weight-semibold">
-                                        <center>
-                                            <img src="<?= $genre_image_src ?>" class=" rounded" height="38" width="60"
-                                                alt="Genre Image">
-                                        </center>
-                                    </td>
+                            <tr>
+                                <td class="font-weight-semibold">
+                                    <center>
+                                        <img src="<?= $genre_image_src ?>" class=" rounded" height="38" width="60"
+                                            alt="Genre Image">
+                                    </center>
+                                </td>
 
-                                    <td class="text-center">
-                                        <?= htmlspecialchars($row['name']) ?>
-                                    </td>
+                                <td class="text-center">
+                                    <?= htmlspecialchars($row['name']) ?>
+                                </td>
 
-                                    <td class="text-center">
-                                        <a href="edit_genres.php?gid=<?= $row['gid'] ?>">
-                                            <i class="uil uil-pen btn btn-md btn-success"></i>
-                                        </a>
-                                    </td>
+                                <td class="text-center">
+                                    <a href="edit_genres.php?gid=<?= $row['gid'] ?>">
+                                        <i class="uil uil-pen btn btn-md btn-success"></i>
+                                    </a>
+                                </td>
 
-                                    <td class="text-center">
-                                        <a href='delete.php?gid=<?= htmlspecialchars($row['gid']) ?>'
-                                            class="genre-delete-btn">
-                                            <i class='uil uil-trash-alt btn btn-md btn-danger'></i>
-                                        </a>
-                                    </td>
-                                </tr>
+                                <td class="text-center">
+                                    <a href='delete.php?gid=<?= htmlspecialchars($row['gid']) ?>'
+                                        class="genre-delete-btn">
+                                        <i class='uil uil-trash-alt btn btn-md btn-danger'></i>
+                                    </a>
+                                </td>
+                            </tr>
                             <?php endforeach; ?>
 
                         </tbody>
@@ -959,31 +969,31 @@ include('connection.php');
                                 // 🚀 Language Image માટે ફૉલબૅક લોજિક
                                 $language_image_src = !empty($row['image']) ? htmlspecialchars($row['image']) : 'assets/img/favicon_1.png';
                                 ?>
-                                <tr>
-                                    <td class="font-weight-semibold">
-                                        <center>
-                                            <img src="<?= $language_image_src ?>" class=" rounded" height="38" width="60"
-                                                alt="Language Image">
-                                        </center>
-                                    </td>
+                            <tr>
+                                <td class="font-weight-semibold">
+                                    <center>
+                                        <img src="<?= $language_image_src ?>" class=" rounded" height="38" width="60"
+                                            alt="Language Image">
+                                    </center>
+                                </td>
 
-                                    <td class="text-center">
-                                        <?= htmlspecialchars($row['name']) ?>
-                                    </td>
+                                <td class="text-center">
+                                    <?= htmlspecialchars($row['name']) ?>
+                                </td>
 
-                                    <td class="text-center">
-                                        <a href="edit_languages.php?lid=<?= $row['lid'] ?>">
-                                            <i class="uil uil-pen btn btn-md btn-success"></i>
-                                        </a>
-                                    </td>
+                                <td class="text-center">
+                                    <a href="edit_languages.php?lid=<?= $row['lid'] ?>">
+                                        <i class="uil uil-pen btn btn-md btn-success"></i>
+                                    </a>
+                                </td>
 
-                                    <td class="text-center">
-                                        <a href='delete.php?lid=<?= htmlspecialchars($row['lid']) ?>'
-                                            class="language-delete-btn"> <i
-                                                class='uil uil-trash-alt btn btn-md btn-danger'></i>
-                                        </a>
-                                    </td>
-                                </tr>
+                                <td class="text-center">
+                                    <a href='delete.php?lid=<?= htmlspecialchars($row['lid']) ?>'
+                                        class="language-delete-btn"> <i
+                                            class='uil uil-trash-alt btn btn-md btn-danger'></i>
+                                    </a>
+                                </td>
+                            </tr>
                             <?php endforeach; ?>
 
                         </tbody>
@@ -1034,19 +1044,19 @@ include('connection.php');
                                 // 🚀 image માટે ફૉલબૅક લોજિક
                                 $artist_image_src = !empty($row['image']) ? htmlspecialchars($row['image']) : 'favicon_1.png';
                                 ?>
-                                <tr>
-                                    <td class="text-center align-middle">
-                                        <img src="<?= $artist_photo_src ?>"
-                                            style="height: 60px; width: 45px; object-fit: cover;" class="rounded"
-                                            alt="Artist Photo">
-                                    </td>
+                            <tr>
+                                <td class="text-center align-middle">
+                                    <img src="<?= $artist_photo_src ?>"
+                                        style="height: 60px; width: 45px; object-fit: cover;" class="rounded"
+                                        alt="Artist Photo">
+                                </td>
 
-                                    <td class="text-center">
-                                        <?= htmlspecialchars($row['name']) ?>
-                                    </td>
+                                <td class="text-center">
+                                    <?= htmlspecialchars($row['name']) ?>
+                                </td>
 
-                                    <td class="text-center align-middle">
-                                        <div class="bg-light text-dark" style="
+                                <td class="text-center align-middle">
+                                    <div class="bg-light text-dark" style="
                                         /* Set max width to control column size */
                                         max-width: 400px; 
                                         /* Set max height to control row height */
@@ -1067,31 +1077,31 @@ include('connection.php');
                                         padding: 8px; 
                                         border-radius: 6px;
                                     ">
-                                            <?php
+                                        <?php
                                             $description = $row['description'] ?? ''; // PHP 7.0+ Null Coalescing Operator
                                             echo htmlspecialchars(!empty($description) ? $description : "No description...");
                                             ?>
-                                        </div>
-                                    </td>
+                                    </div>
+                                </td>
 
-                                    <td class="text-center align-middle">
-                                        <img src="<?= $artist_image_src ?>"
-                                            style="height: 60px; width: 45px; object-fit: cover;" class="rounded"
-                                            alt="Artist Image">
-                                    </td>
+                                <td class="text-center align-middle">
+                                    <img src="<?= $artist_image_src ?>"
+                                        style="height: 60px; width: 45px; object-fit: cover;" class="rounded"
+                                        alt="Artist Image">
+                                </td>
 
-                                    <td class="text-center">
-                                        <a href="edit_artist.php?arid=<?= $row['arid'] ?>">
-                                            <i class="uil uil-pen btn btn-md btn-success"></i>
-                                        </a>
-                                    </td>
+                                <td class="text-center">
+                                    <a href="edit_artist.php?arid=<?= $row['arid'] ?>">
+                                        <i class="uil uil-pen btn btn-md btn-success"></i>
+                                    </a>
+                                </td>
 
-                                    <td class="text-center">
-                                        <a href="delete.php?arid=<?= $row['arid'] ?>" class="artist-delete-btn"> <i
-                                                class="uil uil-trash-alt btn btn-md btn-danger"></i>
-                                        </a>
-                                    </td>
-                                </tr>
+                                <td class="text-center">
+                                    <a href="delete.php?arid=<?= $row['arid'] ?>" class="artist-delete-btn"> <i
+                                            class="uil uil-trash-alt btn btn-md btn-danger"></i>
+                                    </a>
+                                </td>
+                            </tr>
                             <?php endforeach; ?>
                         </tbody>
 
@@ -1141,92 +1151,92 @@ include('connection.php');
                                     // જો $row['image'] ખાલી હોય, તો 'favicon_1.png' નો ઉપયોગ કરો.
                                     $song_image = !empty($row['image']) ? htmlspecialchars($row['image']) : 'favicon_1.png';
                                     ?>
-                                    <tr>
-                                        <td class="font-weight-semibold">
-                                            <center>
-                                                <img src="<?= $song_image ?>" class="rounded" height="50" width="50"
-                                                    alt="Song Image">
-                                            </center>
-                                        </td>
+                            <tr>
+                                <td class="font-weight-semibold">
+                                    <center>
+                                        <img src="<?= $song_image ?>" class="rounded" height="50" width="50"
+                                            alt="Song Image">
+                                    </center>
+                                </td>
 
-                                        <td class="text-center">
-                                            <h6 class="tx-13"><?= htmlspecialchars($row['name'] ?? 'N/A') ?></h6>
-                                        </td>
+                                <td class="text-center">
+                                    <h6 class="tx-13"><?= htmlspecialchars($row['name'] ?? 'N/A') ?></h6>
+                                </td>
 
-                                        <td class="text-center">
-                                            <h6 class="tx-13">
-                                                <?php if (!empty($row['artist_names']) && !empty($row['artist_ids'])): ?>
-                                                    <?php
+                                <td class="text-center">
+                                    <h6 class="tx-13">
+                                        <?php if (!empty($row['artist_names']) && !empty($row['artist_ids'])): ?>
+                                        <?php
                                                     $artist_names = explode(', ', $row['artist_names']);
                                                     $artist_ids = explode(', ', $row['artist_ids']);
                                                     foreach ($artist_names as $index => $artist_name):
                                                         $artist_id = isset($artist_ids[$index]) ? $artist_ids[$index] : '';
                                                         ?>
-                                                        <a href="view_artist_details.php?arid=<?= urlencode($artist_id) ?>"
-                                                            style="text-decoration: none;">
-                                                            <span class="badge rounded-pill text-light bg-primary"
-                                                                style="font-weight: normal; font-size: 13px; padding: 5px 15px;">
-                                                                <?= htmlspecialchars($artist_name) ?>
-                                                            </span>
-                                                        </a>
-                                                    <?php endforeach; ?>
-                                                <?php else: ?>
-                                                    <span class="text-danger">Unknown</span>
-                                                <?php endif; ?>
-                                            </h6>
-                                        </td>
+                                        <a href="view_artist_details.php?arid=<?= urlencode($artist_id) ?>"
+                                            style="text-decoration: none;">
+                                            <span class="badge rounded-pill text-light bg-primary"
+                                                style="font-weight: normal; font-size: 13px; padding: 5px 15px;">
+                                                <?= htmlspecialchars($artist_name) ?>
+                                            </span>
+                                        </a>
+                                        <?php endforeach; ?>
+                                        <?php else: ?>
+                                        <span class="text-danger">Unknown</span>
+                                        <?php endif; ?>
+                                    </h6>
+                                </td>
 
-                                        <td class="text-center">
-                                            <h6 class="tx-13">
-                                                <?php if (!empty($row['genre_names']) && !empty($row['genre_ids'])): ?>
-                                                    <?php
+                                <td class="text-center">
+                                    <h6 class="tx-13">
+                                        <?php if (!empty($row['genre_names']) && !empty($row['genre_ids'])): ?>
+                                        <?php
                                                     $genre_names = explode(', ', $row['genre_names']);
                                                     $genre_ids = explode(', ', $row['genre_ids']);
                                                     foreach ($genre_names as $index => $genre_name):
                                                         $genre_id = isset($genre_ids[$index]) ? $genre_ids[$index] : '';
                                                         ?>
-                                                        <a href="view_genre_details.php?gid=<?= urlencode($genre_id) ?>"
-                                                            style="text-decoration: none;">
-                                                            <span class="badge rounded-pill text-light bg-dark"
-                                                                style=" font-weight: normal; font-size: 13px; padding: 5px 15px;">
-                                                                <?= htmlspecialchars($genre_name) ?>
-                                                            </span>
-                                                        </a>
-                                                    <?php endforeach; ?>
-                                                <?php else: ?>
-                                                    <span class="text-danger">Unknown</span>
-                                                <?php endif; ?>
-                                            </h6>
-                                        </td>
+                                        <a href="view_genre_details.php?gid=<?= urlencode($genre_id) ?>"
+                                            style="text-decoration: none;">
+                                            <span class="badge rounded-pill text-light bg-dark"
+                                                style=" font-weight: normal; font-size: 13px; padding: 5px 15px;">
+                                                <?= htmlspecialchars($genre_name) ?>
+                                            </span>
+                                        </a>
+                                        <?php endforeach; ?>
+                                        <?php else: ?>
+                                        <span class="text-danger">Unknown</span>
+                                        <?php endif; ?>
+                                    </h6>
+                                </td>
 
-                                        <td class="text-center">
-                                            <h6 class="tx-13">
-                                                <?= !empty($row['album']) ? htmlspecialchars($row['album']) : '<span style="color: gray;">N/A</span>' ?>
-                                            </h6>
-                                        </td>
+                                <td class="text-center">
+                                    <h6 class="tx-13">
+                                        <?= !empty($row['album']) ? htmlspecialchars($row['album']) : '<span style="color: gray;">N/A</span>' ?>
+                                    </h6>
+                                </td>
 
-                                        <td class="text-center">
-                                            <h6 class="tx-13"><?= htmlspecialchars($row['length'] ?? 'N/A') ?></h6>
-                                        </td>
+                                <td class="text-center">
+                                    <h6 class="tx-13"><?= htmlspecialchars($row['length'] ?? 'N/A') ?></h6>
+                                </td>
 
-                                        <td class="text-center">
-                                            <a href="edit_songs.php?sid=<?= $row['sid'] ?? '' ?>">
-                                                <i class="uil uil-pen btn btn-md btn-success"></i>
-                                            </a>
-                                        </td>
+                                <td class="text-center">
+                                    <a href="edit_songs.php?sid=<?= $row['sid'] ?? '' ?>">
+                                        <i class="uil uil-pen btn btn-md btn-success"></i>
+                                    </a>
+                                </td>
 
-                                        <td class="text-center">
-                                            <a href='delete.php?sid=<?= htmlspecialchars($row['sid'] ?? '') ?>'
-                                                class="song-delete-btn">
-                                                <i class='uil uil-trash-alt btn btn-md btn-danger'></i>
-                                            </a>
-                                        </td>
-                                    </tr>
-                                <?php endforeach;
+                                <td class="text-center">
+                                    <a href='delete.php?sid=<?= htmlspecialchars($row['sid'] ?? '') ?>'
+                                        class="song-delete-btn">
+                                        <i class='uil uil-trash-alt btn btn-md btn-danger'></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            <?php endforeach;
                             else: ?>
-                                <tr>
-                                    <td colspan="8" class="text-center text-muted">No recent songs found.</td>
-                                </tr>
+                            <tr>
+                                <td colspan="8" class="text-center text-muted">No recent songs found.</td>
+                            </tr>
                             <?php endif; ?>
                         </tbody>
                     </table>

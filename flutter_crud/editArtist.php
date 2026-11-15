@@ -16,7 +16,7 @@ use Cloudinary\Cloudinary;
 $baseUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http");
 $baseUrl .= "://" . $_SERVER['HTTP_HOST'] . "/SingIT/admin/";
 
-// Cloudinary Configuration (Using the credentials from your code)
+// Cloudinary Configuration 
 $cloudinary = new Cloudinary([
     'cloud' => [
         'cloud_name' => 'do3hihcwa',
@@ -25,6 +25,28 @@ $cloudinary = new Cloudinary([
     ]
 ]);
 
+// 🔧 Utility Function: Cloudinary URL માંથી Public ID કાઢવા માટે (Delete કરવા માટે)
+function getPublicIdFromUrl($url)
+{
+    if (empty($url))
+        return null;
+
+    $path = parse_url($url, PHP_URL_PATH);
+    $uploadPos = strpos($path, '/upload/');
+    if ($uploadPos === false)
+        return null;
+
+    $relativePath = substr($path, $uploadPos + 8); // 'v1234567/Artist/with-bg/filename.jpg'
+
+    // વર્ઝન ફોલ્ડર દૂર કરો (v12345678)
+    $relativePath = preg_replace('/^v\d+\//', '', $relativePath);
+
+    // એક્સ્ટેન્શન (.jpg, .png) દૂર કરો
+    $publicId = pathinfo($relativePath, PATHINFO_DIRNAME) . '/' . pathinfo($relativePath, PATHINFO_FILENAME);
+
+    return ltrim($publicId, './');
+}
+
 // Check for update action and required fields
 if (isset($_POST["update"])) {
     $arid = $_POST["arid"] ?? null;
@@ -32,7 +54,7 @@ if (isset($_POST["update"])) {
     $description = trim($_POST["description"] ?? '');
 
     // Get temporary file paths
-    $newMainImageTmp = $_FILES["image"]["tmp_name"] ?? null;
+    $newMainImageTmp = $_FILES["image"]["tmp_name"] ?? null; // HTML ફોર્મ મુજબ name="image" અથવા "photo" હોઈ શકે
     $newTransparentImageTmp = $_FILES["image_transparent"]["tmp_name"] ?? null;
 
     // --- 1. Basic Validation ---
@@ -57,21 +79,34 @@ if (isset($_POST["update"])) {
         exit;
     }
 
-    // --- 2. Retrieve Current Image URLs for Fallback/Deletion (Normal Way) ---
-    // Fetch current data to use if no new image is uploaded.
+    // --- 2. Retrieve Current Image URLs ---
     $currentDataQuery = mysqli_query($con, "SELECT photo, image FROM artist WHERE arid=$arid");
     $currentData = mysqli_fetch_assoc($currentDataQuery);
 
     $mainImageUrl = $currentData['photo'] ?? null;
     $transparentImageUrl = $currentData['image'] ?? null;
 
-    // --- 3. Handle Cloudinary Uploads ---
+    // --- 3. Handle Cloudinary Uploads & Old File Deletion ---
 
-    // A. Upload MAIN image if a new one is provided
-    if ($newMainImageTmp) {
+    // A. Upload MAIN image if a new one is provided -> 'Artist/with-bg'
+    if (!empty($newMainImageTmp)) {
         try {
-            $uploadResult = $cloudinary->uploadApi()->upload($newMainImageTmp);
-            $mainImageUrl = $uploadResult['secure_url']; // Overwrite old URL
+            // જૂની Main Image ડિલીટ કરો
+            if (!empty($mainImageUrl)) {
+                $oldPublicId = getPublicIdFromUrl($mainImageUrl);
+                if ($oldPublicId) {
+                    try {
+                        $cloudinary->uploadApi()->destroy($oldPublicId, ['resource_type' => 'image']);
+                    } catch (Exception $e) {
+                    }
+                }
+            }
+
+            // નવી ફાઈલ 'Artist/with-bg' ફોલ્ડરમાં અપલોડ કરો
+            $uploadResult = $cloudinary->uploadApi()->upload($newMainImageTmp, [
+                'folder' => 'Artist/with-bg'
+            ]);
+            $mainImageUrl = $uploadResult['secure_url'];
 
         } catch (Exception $e) {
             $_SESSION['status'] = 'error';
@@ -81,11 +116,25 @@ if (isset($_POST["update"])) {
         }
     }
 
-    // B. Upload TRANSPARENT image if a new one is provided
-    if ($newTransparentImageTmp) {
+    // B. Upload TRANSPARENT image if a new one is provided -> 'Artist/without-bg'
+    if (!empty($newTransparentImageTmp)) {
         try {
-            $uploadResult = $cloudinary->uploadApi()->upload($newTransparentImageTmp);
-            $transparentImageUrl = $uploadResult['secure_url']; // Overwrite old URL
+            // જૂની Transparent Image ડિલીટ કરો
+            if (!empty($transparentImageUrl)) {
+                $oldPublicId = getPublicIdFromUrl($transparentImageUrl);
+                if ($oldPublicId) {
+                    try {
+                        $cloudinary->uploadApi()->destroy($oldPublicId, ['resource_type' => 'image']);
+                    } catch (Exception $e) {
+                    }
+                }
+            }
+
+            // નવી ફાઈલ 'Artist/without-bg' ફોલ્ડરમાં અપલોડ કરો
+            $uploadResult = $cloudinary->uploadApi()->upload($newTransparentImageTmp, [
+                'folder' => 'Artist/without-bg'
+            ]);
+            $transparentImageUrl = $uploadResult['secure_url'];
 
         } catch (Exception $e) {
             $_SESSION['status'] = 'error';
@@ -95,15 +144,11 @@ if (isset($_POST["update"])) {
         }
     }
 
-    // --- 4. Prepare and Execute Database Update (Update all fields) ---
-
-    // Sanitization
+    // --- 4. Prepare and Execute Database Update ---
     $name_safe = mysqli_real_escape_string($con, $name);
     $description_safe = mysqli_real_escape_string($con, $description);
     $arid_safe = mysqli_real_escape_string($con, $arid);
 
-    // Since we fetch and maintain the old URLs if no new file is uploaded, 
-    // we can update all columns every time.
     $mainImageUrl_safe = mysqli_real_escape_string($con, $mainImageUrl);
     $transparentImageUrl_safe = mysqli_real_escape_string($con, $transparentImageUrl);
 
@@ -126,11 +171,9 @@ if (isset($_POST["update"])) {
     exit;
 
 } elseif (isset($_POST["view"])) {
-    // Handle "View" button submission
     header("location:" . $baseUrl . "view_artist.php");
     exit;
 } else {
-    // If accessed without proper POST data
     header("location:" . $baseUrl . "view_artist.php");
     exit;
 }

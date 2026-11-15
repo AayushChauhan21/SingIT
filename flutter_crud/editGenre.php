@@ -25,6 +25,28 @@ $cloudinary = new Cloudinary([
     ]
 ]);
 
+// 🔧 Utility Function: Cloudinary URL માંથી Public ID કાઢવા માટે (Delete કરવા માટે જરૂરી)
+function getPublicIdFromUrl($url)
+{
+    if (empty($url))
+        return null;
+
+    $path = parse_url($url, PHP_URL_PATH);
+    $uploadPos = strpos($path, '/upload/');
+    if ($uploadPos === false)
+        return null;
+
+    $relativePath = substr($path, $uploadPos + 8); // 'v1234567/Genres/filename.jpg'
+
+    // વર્ઝન ફોલ્ડર દૂર કરો (v12345678)
+    $relativePath = preg_replace('/^v\d+\//', '', $relativePath);
+
+    // એક્સ્ટેન્શન (.jpg, .png) દૂર કરો
+    $publicId = pathinfo($relativePath, PATHINFO_DIRNAME) . '/' . pathinfo($relativePath, PATHINFO_FILENAME);
+
+    return ltrim($publicId, './');
+}
+
 // Check for update action
 if (isset($_POST["update"])) {
     $gid = $_POST["gid"] ?? null;
@@ -42,7 +64,6 @@ if (isset($_POST["update"])) {
     }
 
     if (empty($name)) {
-        // We handle this primarily in JS, but a server-side check is required
         $_SESSION['status'] = 'error';
         $_SESSION['message'] = 'Genre Name is required.';
         header("location:" . $baseUrl . "edit_genres.php?gid=" . $gid);
@@ -53,13 +74,30 @@ if (isset($_POST["update"])) {
     $currentDataQuery = mysqli_query($con, "SELECT image FROM genre WHERE gid=$gid");
     $currentData = mysqli_fetch_assoc($currentDataQuery);
 
-    $imageUrl = $currentData['image'] ?? null; // Current image URL from DB
+    // ડિફોલ્ટ તરીકે જૂની ઈમેજનું URL સેટ રાખીએ
+    $imageUrl = $currentData['image'] ?? null;
 
-    // --- 3. Handle Cloudinary Upload ---
-    if ($newImageTmp) {
+    // --- 3. Handle Cloudinary Upload & Old Image Removal ---
+    if (!empty($newImageTmp)) {
         try {
-            $uploadResult = $cloudinary->uploadApi()->upload($newImageTmp);
-            $imageUrl = $uploadResult['secure_url']; // Overwrite old URL
+            // 🗑️ ૧. જો પહેલેથી ઈમેજ હોય, તો જૂની ઈમેજ Cloudinary માંથી ડિલીટ કરો
+            if (!empty($imageUrl)) {
+                $oldPublicId = getPublicIdFromUrl($imageUrl);
+                if ($oldPublicId) {
+                    try {
+                        $cloudinary->uploadApi()->destroy($oldPublicId, ['resource_type' => 'image']);
+                    } catch (Exception $e) {
+                        // Old image deletion error can be ignored
+                    }
+                }
+            }
+
+            // 📁 ૨. નવી ઈમેજ Cloudinary ના 'Genres' ફોલ્ડરમાં અપલોડ કરો
+            $uploadResult = $cloudinary->uploadApi()->upload($newImageTmp, [
+                'folder' => 'Genres'
+            ]);
+            $imageUrl = $uploadResult['secure_url']; // નવા URL વડે અપડેટ કરો
+
         } catch (Exception $e) {
             $_SESSION['status'] = 'error';
             $_SESSION['message'] = '❌ Image upload failed: ' . $e->getMessage();
@@ -69,13 +107,11 @@ if (isset($_POST["update"])) {
     }
 
     // --- 4. Prepare and Execute Database Update ---
-
-    // Sanitization
     $name_safe = mysqli_real_escape_string($con, $name);
     $gid_safe = mysqli_real_escape_string($con, $gid);
     $imageUrl_safe = mysqli_real_escape_string($con, $imageUrl);
 
-    // Update both name and image (image field holds either old URL or new Cloudinary URL)
+    // Update both name and image
     $qry = "UPDATE genre SET 
                 name='$name_safe', 
                 image='$imageUrl_safe' 
@@ -93,11 +129,9 @@ if (isset($_POST["update"])) {
     exit;
 
 } elseif (isset($_POST["view"])) {
-    // Handle "View" button submission
     header("location:" . $baseUrl . "view_genres.php");
     exit;
 } else {
-    // If accessed without proper POST data
     header("location:" . $baseUrl . "view_genres.php");
     exit;
 }

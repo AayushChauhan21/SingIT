@@ -27,42 +27,35 @@ if (isset($_POST["insert"])) {
     $photoTmp = $_FILES["photo"]["tmp_name"];
 
     try {
-        $uploadResult = $cloudinary->uploadApi()->upload($photoTmp);
+        // અહીં આપણે 'folder' ઓપ્શન ઉમેર્યો છે જેથી ફોટો 'Genres' ફોલ્ડરમાં જશે
+        $uploadResult = $cloudinary->uploadApi()->upload($photoTmp, [
+            'folder' => 'Genres'
+        ]);
+
         $imageUrl = $uploadResult['secure_url'];
+
+        // SQL Injection થી બચવા માટે mysqli_real_escape_string વાપરવું હિતાવહ છે
+        $name = mysqli_real_escape_string($con, $name);
+        $imageUrl = mysqli_real_escape_string($con, $imageUrl);
 
         $qry = "INSERT INTO genre (name,image) VALUES ('$name','$imageUrl')";
         if (mysqli_query($con, $qry)) {
             $_SESSION['status'] = 'success';
-
             $_SESSION['message'] = 'Genre has been successfully inserted!';
             header("location:" . $baseUrl . "view_genres.php");
-
-            // echo "<script>alert('Genre Inserted Successfully'); window.location.href='" . $baseUrl . "view_genres.php';</script>";
+            exit; // header() પછી exit લખવું જરૂરી છે
         } else {
-
             $_SESSION['status'] = 'error';
             $_SESSION['message'] = 'Database insert failed. Please try again.';
-
             header("location:" . $baseUrl . "view_genres.php");
-
-            // echo "<script>alert('Oops... Something went wrong!'); window.history.back();</script>";
+            exit;
         }
 
     } catch (Exception $e) {
-        // echo "<script>alert('Upload Failed: " . $e->getMessage() . "'); window.history.back();</script>";
         $_SESSION['status'] = 'error';
         $_SESSION['message'] = $e->getMessage();
-
         header("location:" . $baseUrl . "view_genres.php");
-
+        exit;
     }
-
 }
-
-// if (isset($_POST["view"])) {
-//     echo "<script>window.location.href='" . $baseUrl . "view_genres.php';</script>";
-//     exit;
-// }
-
-
 ?>

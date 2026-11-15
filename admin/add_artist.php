@@ -45,258 +45,324 @@ include('connection.php');
 // }
 ?>
 
-<style>
-    #custom-button_v,
-    #custom-button_i,
-    #custom-button_in {
-        padding: 10px;
-        color: white;
-        /* background-color: #8371fd; */
-        background: linear-gradient(135deg, #6259ca, #ff6ec4);
-        border: none;
-        border-radius: 10px;
-        cursor: pointer;
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Artist</title>
+    <style>
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
+    /* --- PREMIUM DARK ULTRA CONTEMPORARY OTT MUSIC STREAMING UI WRAPPER --- */
+    :root {
+        --body-bg: #0b0f19;
+        --form-surface: #131a26;
+        --input-bg: #1c2536;
+        --input-border: rgba(255, 255, 255, 0.05);
+        --text-primary: #f8fafc;
+        --text-secondary: #94a3b8;
+        --accent-neon: #AA62C7;
+        --accent-neon-glow: #6259ca;
+        --danger-neon: #ef4444;
+        --radius-music: 16px;
+        --transition-music: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
-    #custom-button_v:hover,
-    #custom-button_i:hover,
-    #custom-button_in:hover {
-        background-color: #9080f4;
+    .music-form-panel {
+        border: 1px solid rgba(255, 255, 255, 0.03);
+        border-radius: var(--radius-music);
+        padding: 2.5rem;
     }
 
-    #custom-text_v,
-    #custom-text_i,
-    #custom-text_in {
-        margin-left: 10px;
-        font-family: sans-serif;
-        color: #aaa;
+    .music-heading {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        letter-spacing: -0.5px;
     }
 
-    form {
-        background-color: white;
-        border-radius: 20px;
+    .field-title {
+        font-size: 0.85rem;
+        font-weight: 500;
+        color: var(--text-secondary);
+        margin-bottom: 0.5rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
     }
 
-    h1 {
-        border-radius: 10px;
+    .music-input {
+        border: 1px solid var(--input-border) !important;
+        border-radius: 12px !important;
+        color: var(--text-primary) !important;
+        padding: 0.75rem 1rem !important;
+        font-size: 0.95rem !important;
+        transition: var(--transition-music) !important;
+        box-shadow: none !important;
+        height: auto !important;
     }
 
-    .input {
-        border-radius: 10px;
-        /* font-size:19px; */
-        height: 40px;
-        color: black;
-
+    .music-input:focus {
+        border-color: var(--accent-neon) !important;
     }
 
-    #name {
-        /* border-color: #edeef3; */
-        /* border-color: gray; */
-        /* background-color: white; */
+    .music-input::placeholder {
+        color: rgba(255, 255, 255, 0.25) !important;
     }
 
-    #custom-button {
-        padding: 10px;
-        color: white;
-        /* background-color: #8371fd; */
-        background: linear-gradient(135deg, #6259ca, #ff6ec4);
-        border: none;
-        border-radius: 10px;
-        cursor: pointer;
-
-    }
-
-    #custom-button:hover {
-        background-color: #9080f4;
-    }
-
-    #custom-text {
-        margin-left: 10px;
-        font-family: sans-serif;
-        color: #aaa;
-    }
-
-    .btn-lg {
-        padding: 0rem 3rem;
-        font-size: 0.875rem;
-        border-radius: 10px;
-    }
-
-    .setimg {
+    /* --- VERTICAL PORTRAIT RATIO (3:4) FOR ARTIST IMAGES --- */
+    .music-media-uploader-frame {
+        border: 2px dashed rgba(255, 255, 255, 0.08);
+        border-radius: var(--radius-music);
+        aspect-ratio: 3 / 4;
+        width: 100%;
         display: flex;
+        flex-direction: column;
         align-items: center;
-        justify-content: center
+        justify-content: center;
+        text-align: center;
+        padding: 1rem;
+        position: relative;
+        cursor: pointer;
+        overflow: hidden;
+        transition: var(--transition-music);
     }
 
-    .tb {
-        /* font-size: 20px; */
-        padding-left: 10px;
+    .music-media-uploader-frame:hover {
+        border-color: var(--accent-neon);
+        background-color: rgba(255, 255, 255, 0.01);
+    }
+
+    .uploader-placeholder-text {
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+        font-weight: 500;
+        pointer-events: none;
+        z-index: 1;
+    }
+
+    .uploader-absolute-preview-img {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        z-index: 2;
+    }
+
+    .btn-music-master-deploy {
+        background: linear-gradient(135deg, #6259ca, #ff6ec4) !important;
+        color: #fff !important;
+        font-weight: 700 !important;
+        font-size: 0.95rem !important;
+        padding: 0.85rem 3.5rem !important;
+        border-radius: 10px !important;
+        border: none !important;
+        transition: var(--transition-music) !important;
+    }
+
+    .btn-music-master-deploy:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(170, 98, 199, 0.4) !important;
     }
 
     .error {
-        color: red;
-        font-size: 14px;
-        margin-top: 5px;
-        display: block;
+        color: var(--danger-neon);
+        font-size: 0.8rem;
+        margin-top: 0.35rem;
+        display: none;
+        font-weight: 500;
     }
-</style>
 
+    .breadcrumb-item a {
+        color: var(--text-secondary) !important;
+        text-decoration: none;
+    }
 
-<div class="page-header">
-    <div>
-        <h2 class="main-content-title tx-24 mg-b-5">Add Artist</h2>
-        <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="home.php">Home</a></li>
-            <li class="breadcrumb-item active" aria-current="page">Add Artist</li>
-        </ol>
+    .breadcrumb-item.active {
+        color: var(--accent-neon) !important;
+    }
+    </style>
+</head>
+
+<body>
+
+    <div class="page-header">
+        <div>
+            <h2 class="main-content-title tx-24 mg-b-5">Add Artist</h2>
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="home.php">Home</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Add Artist</li>
+            </ol>
+        </div>
     </div>
 
-</div>
-<div class="col-md-6 m-auto d-block">
-    <!-- style="border:2px solid #E802A3" -->
-    <form action="../flutter_crud/addArtists.php" method="post" enctype="multipart/form-data"
-        id="form1" class="mb-4 mt-5 border font-weight-bold bg-white p-5 shadow">
-        <h1 class="text-center text-light font-weight-bold p-3" id="gradient">
-            <strong>Artist Form</strong>
-        </h1>
-        <br />
+    <div class="music-container px-3 col-md-6 m-auto d-block">
+        <form action="../flutter_crud/addArtists.php" method="post" enctype="multipart/form-data" id="form1"
+            class="mb-4 border bg-white p-5 shadow music-form-panel">
 
-        <h5>Enter Artist Name:</h5>
-        <input type="text" name="name" id="name" placeholder="Enter Artist Name..." class="form-control input" />
-        <span id="nameError" class="error"></span>
-        <br />
+            <div
+                class="d-flex align-items-center justify-content-between mb-4 pb-2 border-bottom border-white border-opacity-5">
+                <h1 class="music-heading mb-0">Add Artist</h1>
+            </div>
 
-        <h5>Enter Artist Description:</h5>
-        <textarea name="description" id="description" placeholder="Enter Artist Biography or Description..."
-            class="form-control" rows="4"></textarea>
-        <span id="descriptionError" class="error"></span>
-        <br />
+            <div class="row g-4">
 
-        <h5>Upload Artist Image:</h5>
-        <input type="file" id="photo" name="photo" hidden="hidden" />
-        <button type="button" id="custom-button">CHOOSE A FILE</button>
-        <span id="custom-text">No file chosen, yet.</span>
-        <span id="photoError" class="error"></span>
-        <br />
+                <!-- Artist Name -->
+                <div class="col-12">
+                    <div class="field-title">Enter Artist Name</div>
+                    <input type="text" name="name" id="name" placeholder="Enter Artist Name..."
+                        class="form-control music-input">
+                    <span class="error" id="nameError"></span>
+                </div>
 
-        <h5>Upload Artist Image(transparent):</h5>
-        <input type="file" id="image" name="image" accept="image/png" hidden="hidden" />
-        <button type="button" id="custom-button_v">CHOOSE A FILE</button>
-        <span id="custom-text_v">No file chosen, yet.</span>
-        <span class="error" id="audioVError"></span>
-        <br />
+                <!-- Artist Description / Biography -->
+                <div class="col-12">
+                    <div class="field-title">Enter Artist Description</div>
+                    <textarea name="description" id="description" placeholder="Enter Artist Biography or Description..."
+                        class="form-control music-input" rows="4"></textarea>
+                    <span class="error" id="descriptionError"></span>
+                </div>
 
-        <center>
-            <input type="submit" value="Insert" name="insert" id="insert"
-                class="btn btn-outline-primary btn-lg input" />
-            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-            <!-- <input type="submit" id="view" name="view" value="View" class="btn btn-outline-danger btn-lg input" /> -->
-        </center>
-    </form>
-    <br />
-</div>
+                <!-- Artist Main Image Uploader (Vertical 3:4) -->
+                <div class="col-md-6">
+                    <div class="field-title">Upload Artist Image</div>
+                    <div class="music-media-uploader-frame" id="trigger_photo">
+                        <img id="photoPreview" src="" class="uploader-absolute-preview-img" style="display: none;"
+                            alt="Artist Image Preview">
+                        <span class="uploader-placeholder-text" id="photoPlaceholderText">
+                            <i class="uil uil-image d-block fs-2 mb-2"></i>
+                            Upload vertical image
+                        </span>
+                    </div>
+                    <input type="file" id="photo" name="photo" accept="image/*" class="d-none" />
+                    <span class="error" id="photoError"></span>
+                </div>
 
-<script>
-    // --- Setup Custom File Inputs ---
+                <!-- Transparent Image Uploader (Vertical 3:4) -->
+                <div class="col-md-6">
+                    <div class="field-title">Transparent Image (PNG)</div>
+                    <div class="music-media-uploader-frame" id="trigger_image">
+                        <img id="imagePreview" src="" class="uploader-absolute-preview-img" style="display: none;"
+                            alt="Transparent Image Preview">
+                        <span class="uploader-placeholder-text" id="imagePlaceholderText">
+                            <i class="uil uil-image d-block fs-2 mb-2"></i>
+                            Upload vertical PNG
+                        </span>
+                    </div>
+                    <input type="file" id="image" name="image" accept="image/png" class="d-none" />
+                    <span class="error" id="imageError"></span>
+                </div>
 
-    // 1. Main Artist Image (id="photo")
-    const realFileBtn_Main = document.getElementById("photo");
-    const customBtn_Main = document.getElementById("custom-button");
-    const customTxt_Main = document.getElementById("custom-text");
+                <!-- Submit Button -->
+                <div class="col-12 text-center mt-4 pt-2">
+                    <input type="submit" value="Insert" name="insert" id="insert"
+                        class="btn btn-music-master-deploy shadow w-100">
+                </div>
 
-    customBtn_Main.addEventListener("click", function () {
-        realFileBtn_Main.click();
+            </div>
+
+        </form>
+    </div>
+
+    <script>
+    // --- Setup Custom Click-to-Upload Box Logic for Both Images ---
+    function setupImageUpload(triggerId, inputId, previewId, placeholderId, errorId) {
+        const frame = document.getElementById(triggerId);
+        const input = document.getElementById(inputId);
+        const preview = document.getElementById(previewId);
+        const placeholder = document.getElementById(placeholderId);
+        const errorSpan = document.getElementById(errorId);
+
+        frame.addEventListener('click', () => input.click());
+
+        input.addEventListener('change', () => {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    preview.src = e.target.result;
+                    preview.style.display = 'block';
+                    placeholder.style.display = 'none';
+                    errorSpan.style.display = 'none';
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        });
+    }
+
+    setupImageUpload('trigger_photo', 'photo', 'photoPreview', 'photoPlaceholderText', 'photoError');
+    setupImageUpload('trigger_image', 'image', 'imagePreview', 'imagePlaceholderText', 'imageError');
+
+    // --- Live Input Validation clearing ---
+    document.getElementById('name').addEventListener('input', function() {
+        if (this.value.trim() !== "") document.getElementById('nameError').style.display = 'none';
     });
 
-    realFileBtn_Main.addEventListener("change", function () {
-        if (realFileBtn_Main.value) {
-            customTxt_Main.innerHTML = realFileBtn_Main.value.match(/[\/\\]([\w\d\s\.\-\(\)]+)$/)[1];
-        } else {
-            customTxt_Main.innerHTML = "No file chosen, yet.";
-        }
+    document.getElementById('description').addEventListener('input', function() {
+        if (this.value.trim() !== "") document.getElementById('descriptionError').style.display = 'none';
     });
 
-    // 2. Second Artist Image (id="image")
-    const realFileBtn_Second = document.getElementById("image");
-    const customBtn_Second = document.getElementById("custom-button_v"); // Uses _v suffix button
-    const customTxt_Second = document.getElementById("custom-text_v"); // Uses _v suffix text
-
-    customBtn_Second.addEventListener("click", function () {
-        realFileBtn_Second.click();
-    });
-
-    realFileBtn_Second.addEventListener("change", function () {
-        if (realFileBtn_Second.files.length > 0) {
-            // FIX: Use the correct custom text element (customTxt_Second or customTxtV)
-            customTxt_Second.innerHTML = realFileBtn_Second.value.match(/[\/\\]([\w\d\s\.\-\(\)]+)$/)[1];
-        } else {
-            customTxt_Second.innerHTML = "No file chosen, yet.";
-        }
-    });
-
-    // --- Form Submission Validation ---
-
-    document.getElementById("form1").addEventListener("submit", function (e) {
+    // --- Form Submit Validation ---
+    document.getElementById("form1").addEventListener("submit", function(e) {
         const nameField = document.getElementById("name");
         const descriptionField = document.getElementById("description");
-        const photoField = document.getElementById("photo");
-        // FIX: Renamed variable to clearly indicate this is the second image field
-        const imageSecondField = document.getElementById("image");
+        const photoInput = document.getElementById("photo");
+        const imageInput = document.getElementById("image");
 
         const nameError = document.getElementById("nameError");
-        const photoError = document.getElementById("photoError");
         const descriptionError = document.getElementById("descriptionError");
-
-        // FIX: Using the correct HTML ID for the error element
-        const imageSecondError = document.getElementById("audioVError");
+        const photoError = document.getElementById("photoError");
+        const imageError = document.getElementById("imageError");
 
         let valid = true;
 
-        nameError.textContent = "";
-        photoError.textContent = "";
-        descriptionError.textContent = "";
-        imageSecondError.textContent = ""; // Clear the 2nd Image error
+        // Reset errors
+        nameError.style.display = "none";
+        descriptionError.style.display = "none";
+        photoError.style.display = "none";
+        imageError.style.display = "none";
 
         if (e.submitter && e.submitter.name === "insert") {
-            // 1. Validate Artist Name (Required)
+            // Name Check
             if (nameField.value.trim() === "") {
-                nameError.textContent = "⚠️ Name is required.";
+                nameError.textContent = "⚠️ Artist name is required.";
+                nameError.style.display = "block";
                 valid = false;
             }
 
-            // 2. Validate Description (Required)
+            // Description Check
             if (descriptionField.value.trim() === "") {
-                descriptionError.textContent = "⚠️ Description is required.";
+                descriptionError.textContent = "⚠️ Artist description is required.";
+                descriptionError.style.display = "block";
                 valid = false;
             }
 
-            // 3. Validate Main Artist Photo (Required & Image Format)
-            if (!photoField.value) {
-                photoError.textContent = "⚠️ Photo is required.";
+            // Main Photo Check
+            if (photoInput.files.length === 0) {
+                photoError.textContent = "⚠️ Main artist image is required.";
+                photoError.style.display = "block";
                 valid = false;
             } else {
-                const allowedExtensions = ['jpg', 'jpeg', 'png', 'webp'];
-                const fileName = photoField.value.toLowerCase();
-                const fileExtension = fileName.split('.').pop();
-
-                if (!allowedExtensions.includes(fileExtension)) {
-                    photoError.textContent = "⚠️ Only JPG, JPEG, PNG, or WEBP formats are allowed.";
+                const ext = photoInput.value.toLowerCase().split('.').pop();
+                if (!['jpg', 'jpeg', 'png', 'webp'].includes(ext)) {
+                    photoError.textContent = "⚠️ Only JPG, JPEG, PNG, or WEBP allowed.";
+                    photoError.style.display = "block";
                     valid = false;
                 }
             }
 
-            // 4. Validate Second Artist Image (Required & PNG Format)
-            // Note: The HTML has accept="audio/*", but validation checks PNG. We proceed with PNG check.
-            if (!imageSecondField.value) {
-                imageSecondError.textContent = "⚠️ Second Image is required.";
+            // Transparent Image Check (PNG only)
+            if (imageInput.files.length === 0) {
+                imageError.textContent = "⚠️ Transparent PNG image is required.";
+                imageError.style.display = "block";
                 valid = false;
             } else {
-                const allowedExtensions = ['png']; // Only PNG is allowed for the transparent background image
-                const fileName = imageSecondField.value.toLowerCase();
-                const fileExtension = fileName.split('.').pop();
-
-                if (!allowedExtensions.includes(fileExtension)) {
-                    imageSecondError.textContent = "⚠️ Only PNG format is allowed for the transparent image.";
+                const ext = imageInput.value.toLowerCase().split('.').pop();
+                if (ext !== 'png') {
+                    imageError.textContent = "⚠️ Only PNG format is allowed for transparent image.";
+                    imageError.style.display = "block";
                     valid = false;
                 }
             }
@@ -306,8 +372,11 @@ include('connection.php');
             }
         }
     });
-</script>
+    </script>
 
+</body>
+
+</html>
 <?php
 include('fff.php');
 ?>
